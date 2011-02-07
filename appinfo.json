@@ -5,7 +5,7 @@
 	"//title": "Linphone (CPA)",
 	"//id": "com.palm.app.linphone",
 
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"vendor": "WebOS Internals",
 	"type": "web",
 	"main": "index.html",

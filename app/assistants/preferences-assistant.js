@@ -47,6 +47,8 @@ var PreferencesAssistant = Class.create({
     this.prefWidgetTextField ('sipName');
     this.prefWidgetTextField ('sipPassword');
     this.prefWidgetTextField ('sipDomain');
+    this.prefWidgetTextField ('sipProxy');
+    this.prefWidgetToggleButton ('sipUseProxy', 'sipProxyField');
 
   },
 
@@ -82,12 +84,50 @@ var PreferencesAssistant = Class.create({
 			    this.prefChanged.bindAsEventListener (this, name));
   },
 
+  prefWidgetToggleButton: function (name, field) {
+    this.controller.setupWidget (
+      name,
+      {
+	trueLabel:  $L("Yes"),
+	falseLabel: $L("No"),
+      },
+      {
+	value: this.prefs[name],
+      }
+    );
+    this.controller.listen (name,
+			    Mojo.Event.propertyChange,
+			    this.fieldToggle.bindAsEventListener (this, name, field));
+    if (this.prefs[name]) {
+      this.controller.get (field).show ();
+    } else {
+      this.controller.get (field).hide ();
+    }
+  },
+
   prefChanged: function (event, property) {
     QDLogger.log ("PreferencesAssistant#prefChanged:", property, event.value);
     this.prefs[property]  = event.value;
-    this.prefs.sipValid   = (this.prefs.sipName && this.prefs.sipPassword && this.prefs.sipDomain) ? true : false;
+    this.prefs.sipValid   = (this.prefs.sipName && this.prefs.sipPassword && this.prefs.sipDomain && (!this.prefs.sipUseProxy || this.prefs.sipProxy)) ? true : false;
     this.prefs.sipUpdated = true;
-  }
+			    },
 
+  fieldToggle: function (event, property, field) {
+    QDLogger.log ("PreferencesAssistant#fieldToggle:", property, event.value, field);
+    this.prefs[property]  = event.value;
+    this.prefs.sipValid   = (this.prefs.sipName && this.prefs.sipPassword && this.prefs.sipDomain && (!this.prefs.sipUseProxy || this.prefs.sipProxy)) ? true : false;
+    this.prefs.sipUpdated = true;
+    if (event.value) {
+      this.controller.get (field).show ();
+    } else {
+      this.controller.get (field).hide ();
+    }
+    this.prefs.sipUpdated = true;
+  },
+
+/* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
+
+    // Only to end the function list with no trailing comma...
+    dummy: function () {}
 
 });

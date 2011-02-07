@@ -44,13 +44,13 @@ var LinphoneService = {
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
-  register: function (name, password, domain, callback) {
+  register: function (name, password, domain, proxy, callback) {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "register",
       parameters: {
 	"identity": "sip:" + name + "@" + domain,
 	"password": password,
-	"proxy":    "sip:" + domain,
+	"proxy":    "sip:" + proxy,
       },
       onSuccess: callback,
       onFailure: callback
