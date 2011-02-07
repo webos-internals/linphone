@@ -1,0 +1,8 @@
+*~
+*.orig
+*.rej
+service/bin/armv7
+service/bin/armv6
+service/bin/i686
+
+

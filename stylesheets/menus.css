@@ -1,0 +1,296 @@
+/*
+	Phone
+	Menus
+	Copyright (c) 2007-2009, Palm Inc.
+	All rights reserved.
+
+*/
+
+.phone-menu-short {
+		position: absolute;
+		left: 0;
+		bottom: 0px;
+		width: 320px;
+		height: 50px;
+		background: url(../images/call-log-list-sprite.png) 0px -140px;
+}
+
+.phone-menu-short.fixed {
+		position: absolute;
+		left: 0;
+		bottom: 0px;
+}
+
+.phone-menu-tall {
+		position: absolute;
+		left: 0;
+		bottom: 0px;
+		width: 320px;
+		height: 70px;
+}
+
+.phone-menu-button {
+		height: 50px;
+		background: none;
+		-webkit-border-image: url(../images/phone-menu-button.png) 0 25 150 25 repeat repeat;
+		-webkit-user-select: none;
+		border-width: 0 25px 0 25px;
+		font-size: 15px;
+		font-weight: bold;
+		line-height: 50px;
+		color: white;
+		text-align: center;
+		-webkit-box-sizing: border-box;
+		box-sizing: border-box;
+}
+
+.phone-menu-button.selected {
+		-webkit-border-image: url(../images/phone-menu-button.png) 50 25 100 25 repeat repeat;
+}
+
+.phone-menu-button.palm-depressed {
+		-webkit-border-image: url(../images/phone-menu-button.png) 100 25 50 25 repeat repeat;
+}
+
+.phone-menu-button.palm-depressed.selected {
+		-webkit-border-image: url(../images/phone-menu-button.png) 150 25 0 25 repeat repeat;
+}
+
+.phone-menu-tall .phone-menu-button {
+		position: absolute;
+		width: 80px;
+		height: 70px;
+		text-align: center;
+		font-weight: normal;
+		font-size: 11px;
+		color: #888888;
+		-webkit-border-image: url(../images/phone-menu-button-tall.png) 0 25 210 25 repeat repeat;
+}
+
+.phone-menu-tall .phone-menu-button.full-width {
+		font-size: 16px;
+		width: 100%;
+}
+
+.phone-menu-tall .phone-menu-button.full-width.redial {
+		color: #FFFFFF;
+}
+
+.phone-menu-tall .phone-menu-button:active {
+		-webkit-border-image: url(../images/phone-menu-button-tall.png) 70 25 140 25 repeat repeat;
+}
+
+.phone-menu-tall .phone-menu-button.palm-depressed {
+		-webkit-border-image: url(../images/phone-menu-button-tall.png) 140 25 70 25 repeat repeat;
+}
+
+.phone-menu-tall .phone-menu-button.palm-depressed:active {
+		-webkit-border-image: url(../images/phone-menu-button-tall.png) 210 25 0 25 repeat repeat;
+}
+
+.phone-menu-button div.button-margin {
+		margin: 0 -10px 0 -10px;
+		line-height: 14px;
+}
+
+.phone-menu-tall .phone-menu-button.one {
+		left: 0;
+}
+
+.phone-menu-tall .phone-menu-button.two {
+		left: 80px;
+}
+
+.phone-menu-tall .phone-menu-button.three {
+		left: 160px;
+}
+
+.phone-menu-tall .phone-menu-button.four {
+		left: 240px;
+}
+
+/* dialpad scene */
+
+.phone-menu-button.halfleft {
+		width: 160px;
+		position: absolute;
+		top: 0;
+		left: 0;
+}
+
+.voicemail-badge {
+		position: absolute;
+		line-height: 28px;
+		font-weight: bold;
+		height: 28px;
+		min-width: 24px;
+		top: 5px;
+		left: 67px;
+		text-align: center;
+		vertical-align: baseline;
+		-webkit-border-image: url(../images/voicemail-badge-active.png) 0 12 0 12 repeat stretch;
+		-webkit-border-image: url(../images/voicemail-badge.png) 0 12 0 12 repeat stretch;
+		-webkit-box-sizing: border-box;
+		border-width: 0px 12px 0px 12px;
+}
+
+.phone-menu-button.selected .voicemail-badge {
+		-webkit-border-image: url(../images/voicemail-badge-active.png) 0 12 0 12 repeat stretch;
+}
+
+.voicemail-badge span {
+		margin: 0 -4px;
+		font-size: 16px;
+}
+
+.phone-menu-button.halfright {
+		width: 160px;
+		position: absolute;
+		top: 0;
+		left: 160px;
+}
+
+.phone-menu-button.fullwidth {
+		width: 320px;
+		position: absolute;
+		top: 0;
+		left: 0px;
+}
+
+.phone-menu-icon {
+		height: 32px;
+		width: 32px;
+		margin: 9px auto;
+		background-position: center top;
+		background-repeat: no-repeat;
+}
+
+.phone-menu-tall .phone-menu-icon {
+		width: 48px;
+		margin: 12px auto 1px auto;
+}
+
+.phone-menu-button:active .phone-menu-icon {
+		background-position: center bottom;
+		background-repeat: no-repeat;
+}
+
+.phone-menu-button .phone-menu-icon.voicemail {
+		width: 48px;
+		background-image: url(../images/menu-icon-voicemail.png);
+}
+
+.phone-menu-button .phone-menu-icon.call-log {
+		background-image: url(../images/menu-icon-call-log.png);
+}
+
+.phone-menu-button .phone-menu-icon.add-contact {
+		background-image: url(../images/menu-icon-addcontact.png);
+		background-position: top left;
+		height: 34px;
+		line-height: 34px;
+		padding-left: 50px;
+		white-space: nowrap;
+}
+
+.phone-menu-button .phone-menu-icon.unlock {
+		background-image: url(../images/menu-icon-unlock.png);
+}
+
+.phone-menu-button .phone-menu-icon.contactbook {
+		background-image: url(../images/menu-icon-contactbook.png);
+}
+
+.phone-menu-button .phone-menu-icon.addcall {
+		background-image: url(../images/menu-icon-addcall.png);
+}
+
+.phone-menu-button .phone-menu-icon.dtmfpad {
+		background-image: url(../images/menu-icon-dtmfpad.png);
+}
+
+.phone-menu-button .phone-menu-icon.mute {
+		background-image: url(../images/menu-icon-mute.png);
+}
+
+.phone-menu-button .phone-menu-icon.sms {
+		background-image: url(../images/menu-icon-sms.png);
+}
+
+.phone-menu-button .phone-menu-icon.speaker {
+		background-image: url(../images/menu-icon-speaker.png);
+}
+
+.phone-menu-button .phone-menu-icon.speaker-bluetooth {
+		background-image: url(../images/menu-icon-speaker-bluetooth.png);
+}
+
+.phone-menu-button .phone-menu-icon.speaker-external {
+		background-image: url(../images/menu-icon-speaker-external.png);
+}
+
+.phone-menu-button .phone-menu-icon.headset {
+		background-image: url(../images/menu-icon-headset.png);
+}
+
+.phone-menu-button .phone-menu-icon.headset-tty {
+		background-image: url(../images/menu-icon-headset-tty.png);
+}
+
+.phone-menu-button .phone-menu-icon.popup-bluetooth {
+		background-image: url(../images/menu-popup-bluetooth.png);
+}
+
+.phone-menu-button .phone-menu-icon.popup-bluetooth-headset {
+		background-image: url(../images/menu-popup-bluetooth-headset.png);
+}
+
+.phone-menu-button .phone-menu-icon.popup-bluetooth-headset-tty {
+		background-image: url(../images/menu-popup-bluetooth-headset-tty.png);
+}
+
+.phone-menu-button .phone-menu-icon.popup-bluetooth-internal {
+		background-image: url(../images/menu-popup-bluetooth-internal.png);
+}
+
+.phone-menu-button .phone-menu-icon.popup-bluetooth-speaker {
+		background-image: url(../images/menu-popup-bluetooth-speaker.png);
+}
+
+.phone-menu-button .phone-menu-icon.redial {
+		margin-top: 11px;
+		background-image: url(../images/menu-icon-redial.png);
+}
+
+/* List Selector icons */
+
+.list-selector-icon {
+		width: 32px;
+}
+
+.list-selector-icon.list-phone_bluetooth_sco {
+		background-image: url(../images/list-selector-bluetooth.png);
+}
+
+.list-selector-icon.list-bluetooth-add {
+		background-image: url(../images/list-selector-bluetooth-add.png);
+}
+
+.list-selector-icon.list-phone_back_speaker {
+		background-image: url(../images/list-selector-speaker-external.png);
+}
+
+.list-selector-icon.list-phone_front_speaker {
+		background-image: url(../images/list-selector-speaker-internal.png);
+}
+
+.list-selector-icon.list-phone_headset_mic {
+		background-image: url(../images/list-selector-headset.png);
+}
+
+.list-selector-icon.list-phone_tty_vco,
+.list-selector-icon.list-phone_tty_hco,
+.list-selector-icon.list-phone_tty_full {
+		background-image: url(../images/list-selector-tty.png);
+}
+

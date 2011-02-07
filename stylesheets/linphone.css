@@ -1,0 +1,98 @@
+/*
+	Linphone (webOS port)
+	Copyright (c) 2011, WebOS Internals
+	All rights reserved.
+
+*/
+
+@import url(menus.css);
+@import url(preferences.css);
+@import url(dialpad.css);
+
+/*
+body.palm-default {
+		background: #000 url(../images/backdrop-phone.png) 0 0 fixed no-repeat;
+}
+*/
+
+body.no-wallpaper {
+		background: rgb(228, 228, 226);
+
+/* copied in from palm-default */
+}
+
+.glass-wrapper {
+    position: fixed;
+    top: 0px;
+    bottom: 72px;
+    width: 100%;
+    overflow: hidden;
+    padding-bottom: 15px;
+}
+
+.glass-background {
+    -webkit-border-image: url(../images/glass-tile.png) 146 0 146 0 repeat repeat;
+    border-width: 146px 0px;
+    width: 100%;
+    height: 100%;
+    -webkit-box-sizing: border-box;
+    position: absolute;
+}
+
+.button-container {
+    width: 100%;
+    position: absolute;
+    bottom: 0px;
+}
+
+.SetPassword-scene .glass-wrapper {
+    bottom: 47px;
+}
+
+.SetPassword-scene,
+.password-scene {
+    height: 100%;
+}
+
+.passwordhint {
+    margin: 0px 12px;
+}
+
+.content-wrapper {
+    margin: 9px 6px 0px;
+    color: #fff;
+    font-size: 16px;
+    height: 100%;
+}
+
+.scroll-fade-top,
+.scroll-fade-bottom {
+    position: absolute;
+    height: 40px;
+    width: 100%;
+    z-index: 1000; /* Match framework z-index for .hint-text */
+}
+
+.scroll-fade-top {
+    top: 0;
+    background: url(../images/glass-fade-top.png) center top no-repeat;
+}
+
+.scroll-fade-bottom {
+    bottom: 0;
+    background: url(../images/glass-fade-bottom.png) center top no-repeat;
+}
+
+/* Dashboard icons */
+
+.palm-dashboard-icon.missed {
+		background: url(../images/notification-large-missed.png) center left no-repeat;
+}
+
+.palm-dashboard-icon.voicemail {
+		background: url(../images/notification-large-voicemail.png) center left no-repeat;
+}
+
+.palm-dashboard-icon.answer {
+		background: url(../images/notification-large-answer.png) center left no-repeat;
+}

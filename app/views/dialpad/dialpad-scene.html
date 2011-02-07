@@ -1,0 +1,93 @@
+<div id="dialpad" class="dialpad-scene" x-palm-automation="dial.scene">
+    <div class="input-field">
+        <span id="dialpad_input" x-palm-automation="dial.scenepart.number">
+            <div class="truncating-text text-input" id="dial_textfield" x-mojo-tap-highlight="immediate" x-palm-automation="dial.text.number">
+            </div>
+            <div class="text-input hinttext" x-mojo-loc="" id="dial_hinttext" x-palm-automation="dial.text.hint">
+            </div>
+        </span>
+    </div>
+    <div id="dial_textfield_name" class="truncating-text contact-name"></div>
+    <div id="delete_button" class="backspace" x-palm-automation="dial.button.backspace"></div>
+    <div id="lookup_button" class="lookup" x-palm-automation="dial.button.contactlookup" style="display: none"></div>
+    <div id="numbers" class="keypad-flex">
+        <div id="keypad_buttons" class="keypad-buttons" x-palm-automation="dial.scenepart.keypad">
+            <div class="key glassbutton one" id="b_1" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.1">
+                <p class="keypad-digit">1</p>
+                <p class="keypad-letters">&nbsp;</p>
+            </div>
+            <div class="key glassbutton two" id="b_2" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.2">
+                <p class="keypad-digit">2</p>
+                <p class="keypad-letters">ABC</p>
+            </div>
+            <div class="key glassbutton three" id="b_3" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.3">
+                <p class="keypad-digit">3</p>
+                <p class="keypad-letters">DEF</p>
+            </div>
+            <div class="key glassbutton four" id="b_4" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.4">
+                <p class="keypad-digit">4</p>
+                <p class="keypad-letters">GHI</p>
+            </div>
+            <div class="key glassbutton five" id="b_5" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.5">
+                <p class="keypad-digit">5</p>
+                <p class="keypad-letters">JKL</p>
+            </div>
+            <div class="key glassbutton six" id="b_6" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.6">
+                <p class="keypad-digit">6</p>
+                <p class="keypad-letters">MNO</p>
+            </div>
+            <div class="key glassbutton seven" id="b_7" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.7">
+                <p class="keypad-digit">7</p>
+                <p class="keypad-letters">PQRS</p>
+            </div>
+            <div class="key glassbutton eight" id="b_8" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.8">
+                <p class="keypad-digit">8</p>
+                <p class="keypad-letters">TUV</p>
+            </div>
+            <div class="key glassbutton nine" id="b_9" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.9">
+                <p class="keypad-digit">9</p>
+                <p class="keypad-letters">WXYZ</p>
+            </div>
+            <div class="key glassbutton star" id="b_*" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.star">
+                <p class="keypad-digit">*</p>
+                <p class="keypad-letters">&nbsp;</p>
+            </div>
+            <div class="key glassbutton zero" id="b_0" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.0">
+                <p class="keypad-digit">0</p>
+                <p class="keypad-letters">+</p>
+            </div>
+            <div class="key glassbutton pound" id="b_#" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.scenepart.keypad.pound">
+                <p class="keypad-digit">#</p>
+                <p class="keypad-letters">&nbsp;</p>
+            </div>
+        </div>
+        <div id="empty_button" class="empty-button" x-mojo-touch-feedback="spontaneous" style="display:none" x-palm-automation="dial.button.empty"></div>
+        <div id="dial_button" class="dial-button" x-mojo-touch-feedback="spontaneous" x-palm-automation="dial.button.dial"></div>
+        <div id="disconnect_button" class="disconnect-button" x-mojo-touch-feedback="spontaneous" style="display:none" x-palm-automation="dial.button.disconnect"></div>
+    </div>
+    <div id="phone-menu" class="phone-menu-short">
+        <div id="voicemail_button" class="phone-menu-button halfleft" x-mojo-tap-highlight="immediate" style="display:none" x-palm-automation="dial.button.voicemail">
+            <div class="phone-menu-icon voicemail">
+            </div>
+            <div class="voicemail-badge" id="voicemail_badge">
+                <span id="voicemail_count">1</span>
+            </div>
+        </div>
+        <div id="call_log_button" class="phone-menu-button halfright" x-mojo-tap-highlight="immediate" style="display:none" x-palm-automation="dial.button.calllog">
+            <div class="phone-menu-icon call-log">
+            </div>
+        </div>
+        <div id="contact_add_button" x-mojo-loc="" class="phone-menu-button fullwidth" style="display:none" x-palm-automation="dial.button.contacts">
+            Add to Contacts
+        </div>
+        <div id="emergency_cancel_button" x-mojo-loc="" class="phone-menu-button fullwidth" style="display:none" x-palm-automation="dial.button.emergency">
+            Cancel
+        </div>
+        <div id="lpstate_button" x-mojo-loc="" class="phone-menu-button fullwidth" x-palm-automation="dial.button.lpstate">
+            Waiting for service to come up...
+        </div>
+    </div>
+    <form name="picker_form" style="display:none" id="picker_form" x-palm-automation="dial.scenepart.picker">
+        <div id="contact_widget" class="palm-dark"></div>
+    </form>
+</div>

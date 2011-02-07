@@ -1,0 +1,15 @@
+{
+	"title": "Linphone",
+	"id": "org.webosinternals.linphone",
+
+	"//title": "Linphone (CPA)",
+	"//id": "com.palm.app.linphone",
+
+	"version": "0.0.2",
+	"vendor": "WebOS Internals",
+	"type": "web",
+	"main": "index.html",
+	"icon": "icon.png",
+	"splashicon": "images/linphone-256x256.png",
+	"keywords": ["voip", "sip", "dial", "phone"]
+}
