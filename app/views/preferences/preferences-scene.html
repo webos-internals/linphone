@@ -53,7 +53,7 @@
 	</div>
       </div>
 
-      <div class="palm-row last">
+      <div class="palm-row">
 	<div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true">
 	  <div class="title">
 	    <div class="label"              id="sip-domain">DOMAIN</div>
@@ -61,6 +61,21 @@
 	  </div>
 	</div>
       </div>
+
+      <div class="palm-row last">
+	<div class="palm-row-wrapper">
+	  <div class="help-overlay" id="help-showTypeOther"></div>
+	  <div class="label left" id="show-other-types">Use Proxy</div>
+	  <div x-mojo-element="ToggleButton" id="sipUseProxy"></div>
+	</div>
+	<div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true" id="sipProxyField" style="display:none">
+	  <div class="title">
+	    <div class="label"              id="sip-proxy">PROXY</div>
+	    <div x-mojo-element="TextField" id="sipProxy"></div>
+	  </div>
+	</div>
+      </div>
+
     </div>
   </div>
 

@@ -72,6 +72,8 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#activate: sipName     =", this.prefs.sipName);
     QDLogger.log ("DialpadAssistant#activate: sipPassword =", this.prefs.sipPassword);
     QDLogger.log ("DialpadAssistant#activate: sipDomain   =", this.prefs.sipDomain);
+    QDLogger.log ("DialpadAssistant#activate: sipUseProxy =", this.prefs.sipUseProxy);
+    QDLogger.log ("DialpadAssistant#activate: sipProxy    =", this.prefs.sipProxy);
     QDLogger.log ("DialpadAssistant#activate: sipUpdated  =", this.prefs.sipUpdated);
     QDLogger.log ("DialpadAssistant#activate: sipValid    =", this.prefs.sipValid);
 
@@ -79,7 +81,7 @@ var DialpadAssistant = Class.create ({
     if (   this.prefs.sipUpdated
 	&& this.prefs.sipValid
 	&& LinphoneCallState.powerOK ()) {
-      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain);
+      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
       preferenceCookie.save ("sipUpdated", false);
       QDLogger.log ("DialpadAssistant#activate: registering...");
     }
