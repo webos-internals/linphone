@@ -2,6 +2,7 @@
 
 PID="org.webosinternals.linphone"
 SID="org.webosinternals.linphone.service"
+BIN="linphoneservice"
 
 APPS=/media/cryptofs/apps
 
@@ -26,7 +27,7 @@ rm -f /var/palm/event.d/${SID}
 
 # Install the service executable
 mkdir -p /var/usr/sbin/
-install -m 755 $APPS/usr/palm/applications/${PID}/bin/${SID} /var/usr/sbin/${SID}
+install -m 755 $APPS/usr/palm/applications/${PID}/bin/${BIN} /var/usr/sbin/${SID}
 
 # Install the dbus service
 mkdir -p /var/palm/system-services
