@@ -26,11 +26,18 @@
     },
 
     {
+        "source": "app/assistants/app-assistant.js"
+    },
+    {
         "source": "app/assistants/stage-assistant.js"
     },
     {
         "scenes": "dialpad",
         "source": "app/assistants/dialpad-assistant.js"
+    },
+    {
+        "scenes": "incomingcall",
+        "source": "app/assistants/incomingcall-assistant.js"
     },
     {
         "scenes": "preferences",

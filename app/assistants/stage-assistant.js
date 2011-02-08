@@ -19,13 +19,16 @@
 */
 
 function StageAssistant () {
-	/* this is the creator function for your stage assistant object */
+  /* this is the creator function for your stage assistant object */
 }
 
 StageAssistant.prototype.setup = function () {
-	/* this function is for setup tasks that have to happen when the stage is first created */
+  /* this function is for setup tasks that have to happen when the stage is first created */
 	
-	/* for a simple application, the stage assistant's only task is to push the scene, making it
-	   visible */
-	this.controller.pushScene ("dialpad");
+  /* for a simple application, the stage assistant's only task is to push the scene, making it visible */
+  
+  // Show the dialpad scene, unless we are a headless app (kept for code transition from headed to headless...)
+  if (!Mojo.appInfo.noWindow) {
+    this.controller.pushScene ("dialpad");
+  }
 };

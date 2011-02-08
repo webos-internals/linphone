@@ -61,10 +61,11 @@ var LinphoneCallState = {
   initialize: function (params) {
   },
 
-  update: function (newstate, pwrCB, regCB, callCB, callInCB, callOutCB, invCB) {
+  update: function (newstate, message, anyCB, pwrCB, regCB, callCB, callInCB, callOutCB, invCB) {
 
     this.generalState  = newstate;
 //    QDLogger.log ("LinphoneCallState#update: newstate =", newstate, "/ this.generalState =", this.generalState);
+    if (anyCB) anyCB (newstate, message);
 
     this.powerEvent    = false;
     this.registerEvent = false;
@@ -83,11 +84,11 @@ var LinphoneCallState = {
       this.powerEvent = true;
       if (newstate !== this.POWER_ON) {
 	this.callState = false;
-	if (callCB) callCB ();
+	if (callCB) callCB (newstate, message);
 	this.registerState = false;
-	if (regCB) regCB ();
+	if (regCB) regCB (newstate, message);
       }
-      if (pwrCB) pwrCB ();
+      if (pwrCB) pwrCB (newstate, message);
       break;
 
     case this.REG_NONE:
@@ -101,9 +102,9 @@ var LinphoneCallState = {
       // Beware: REG_OK is a special case as Linphone periodically confirms registration...
       if (newstate !== this.REG_OK) {
 	this.callState = false;
-	if (callCB) callCB ();
+	if (callCB) callCB (newstate, message);
       }
-      if (regCB) regCB ();
+      if (regCB) regCB (newstate, message);
       break;
 
     case this.CALL_IDLE:
@@ -113,7 +114,7 @@ var LinphoneCallState = {
       this.registerState = this.REG_OK;
       this.callState = newstate;
       this.callEvent = true;
-      if (callCB) callCB (newstate);
+      if (callCB) callCB (newstate, message);
       break;
 
     case this.CALL_OUT_INVITE:
@@ -124,7 +125,7 @@ var LinphoneCallState = {
       this.callState    = newstate;
       this.callEvent    = true;
       this.callOutEvent = true;
-      if (callOutCB) callOutCB (newstate);
+      if (callOutCB) callOutCB (newstate, message);
       break;
 
     case this.CALL_IN_INVITE:
@@ -134,14 +135,14 @@ var LinphoneCallState = {
       this.callState   = newstate;
       this.callEvent   = true;
       this.callInEvent = true;
-      if (callInCB) callInCB (newstate);
+      if (callInCB) callInCB (newstate, message);
       break;
 
     case this.INVALID:
       this.powerState = newstate;
       this.regState   = newstate;
       this.callState  = newstate;
-      if (invCB) incCB (newstate);
+      if (invCB) incCB (newstate, message);
       break;
 
     }

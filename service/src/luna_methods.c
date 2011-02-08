@@ -196,9 +196,8 @@ static unsigned char general_state[64];
 
 static void
 lc_cb_general_state (LinphoneCore *lc, LinphoneGeneralState *gstate) {
+
 #define GSCASE(s) case GSTATE_##s: strcpy (general_state, #s); break
-
-
   switch (gstate->new_state) {
     GSCASE(POWER_OFF);
     GSCASE(POWER_STARTUP);
@@ -206,19 +205,20 @@ lc_cb_general_state (LinphoneCore *lc, LinphoneGeneralState *gstate) {
     GSCASE(POWER_SHUTDOWN);
 
     GSCASE(REG_NONE);
+    GSCASE(REG_PENDING);
     GSCASE(REG_OK);
     GSCASE(REG_FAILED);
-    GSCASE(REG_PENDING);
 
     GSCASE(CALL_IDLE);
     GSCASE(CALL_OUT_INVITE);
+    GSCASE(CALL_OUT_RINGING);
     GSCASE(CALL_OUT_CONNECTED);
     GSCASE(CALL_IN_INVITE);
     GSCASE(CALL_IN_CONNECTED);
     GSCASE(CALL_END);
+
     GSCASE(CALL_ERROR);
     GSCASE(INVALID);
-    GSCASE(CALL_OUT_RINGING);
 
     default:
       sprintf (general_state, "UNKNOWN_%d", gstate->new_state);
@@ -969,6 +969,34 @@ bool call_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subco
 }
 
 static
+bool answer_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+  LSError lserror;
+  LSErrorInit (&lserror);
+
+  lpc = 1;
+  int answer = linphone_core_accept_call (lc, NULL);
+  lpc = 0;
+
+  if (answer == -1) {
+    if (!LSMessageReply (lshandle, message,
+			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Failed to accept incoming call\"}",
+			 &lserror)) goto error;
+  }
+  else  {
+    if (!LSMessageReply (lshandle, message,
+			 "{\"returnValue\": true}",
+			 &lserror)) goto error;
+  }
+
+  return true;
+ error:
+  LSErrorPrint (&lserror, stderr);
+  LSErrorFree (&lserror);
+ end:
+  return false;
+}
+
+static
 bool terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
@@ -977,7 +1005,7 @@ bool terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   int terminate = linphone_core_terminate_call (lc, NULL);
   lpc = 0;
   if (terminate == -1) {
-    strcpy(buffer, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \": \"No active call\"}");
+    strcpy(buffer, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"No active call\"}");
   } else {
     strcpy(buffer, "{\"returnValue\": true}");
   }
@@ -1025,6 +1053,7 @@ LSMethod luna_methods[] = {
   { "register",	        register_method       },
   { "unregister",       unregister_method     },
   { "call",	        call_method           },
+  { "answer",	        answer_method         },
   { "terminate",        terminate_method      },
   { "quit",             quit_method           },
   { 0, 0 }

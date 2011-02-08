@@ -113,18 +113,53 @@ var DialpadAssistant = Class.create ({
 
     if (!payload.generalState)
       return;
+    
+    this.handleInitBind ();
 
     this.controller.get ('lpstate_button').innerHTML = payload.generalState;
-    LinphoneCallState.update (payload.generalState,
-			      this.handlePower.bind (this),
-			      this.handleRegister.bind (this),
-			      this.handleCall.bind (this),
-			      this.handleCallIn.bind (this),
-			      this.handleCallOut.bind (this),
-			      this.handleInvalid.bind (this));
+    LinphoneCallState.update (
+      payload.generalState,
+      payload.message,
+      this.handleAnyBound,
+      this.handlePowerBound,
+      this.handleRegisterBound,
+      this.handleCallBound,
+      this.handleCallInBound,
+      this.handleCallOutBound,
+      this.handleInvalidBound
+    );
   },
 
-  handlePower: function () {
+  handleInitBound: false,
+  handleInitBind: function () {
+    if (!this.handleInitBound) {
+      QDLogger.log ("DialpadAssistant#handleInitBind");
+
+      this.handleAnyBound           = this.handleAny.bind           (this);
+      this.handlePowerBound         = this.handlePower.bind         (this);
+      this.handleRegisterBound      = this.handleRegister.bind      (this);
+      this.handleCallBound          = this.handleCall.bind          (this);
+      this.handleCallInBound        = this.handleCallIn.bind        (this);
+      this.handleCallOutBound       = this.handleCallOut.bind       (this);
+      this.handleInvalidBound       = this.handleInvalid.bind       (this);
+
+      this.missedCallSubscribeBound = this.missedCallSubscribe.bind (this);
+
+      this.handleInitBound          = true;
+    };
+  },
+
+  handleAny: function (state, message) {
+    QDLogger.log ("DialpadAssistant#handleAny");
+
+    // In case "someone" registered to get informed about missed call, inform him and cancel subscription
+    if (!LinphoneCallState.callACTIVE ()) {
+      this.missedCallInform ();
+      this.missedCallSubscribe (undefined);
+    }
+  },
+
+  handlePower: function (state, message) {
     QDLogger.log ("DialpadAssistant#handlePower");
 
     // Cancel everything if no "power" available... (LP stopped or no network?)
@@ -134,13 +169,13 @@ var DialpadAssistant = Class.create ({
 
     // Register if we can
     if (LinphoneCallState.registerNONE () && this.prefs.sipValid) {
-      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain);
+      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
       QDLogger.log ("DialpadAssistant#handlePower: registering...");
     }
   },
 
   dirtyRegister: false,
-  handleRegister: function () {
+  handleRegister: function (state, message) {
     QDLogger.log ("DialpadAssistant#handleRegister");
 
     // Remember a failed registration
@@ -160,7 +195,7 @@ var DialpadAssistant = Class.create ({
     }
   },
 
-  handleCall: function () {
+  handleCall: function (state, message) {
     QDLogger.log ("DialpadAssistant#handleCall");
 
     // If back to idle, show dial button
@@ -173,6 +208,7 @@ var DialpadAssistant = Class.create ({
     if (   LinphoneCallState.callENDED ()
 	|| LinphoneCallState.callFAILED ()
        ) {
+
       QDLogger.log ("DialpadAssistant#handleCall: ENDED or FAILED");
       this.buttonEmptyON (true);
       // In case call failed, we might suspect a registration issue, so retry a registration...
@@ -184,10 +220,25 @@ var DialpadAssistant = Class.create ({
     }
   },
 
-  handleCallIn: function () {
+  handleCallIn: function (state, message) {
+    QDLogger.log ("DialpadAssistant#handleCallIn");
+
+    // So we get an incoming call: push a popup scene to manage answer/reject & information
+    if (LinphoneCallState.callRINGIN ()) {
+      QDLogger.log ("DialpadAssistant#handleCallIn: RINGIN");
+      this.incomingCallPopup (message, this.missedCallSubscribeBound);
+      this.buttonEmptyON (true);
+    }
+
+    // Show disconnect button as soon as connected
+    if (LinphoneCallState.callCONNECTED ()) {
+      QDLogger.log ("DialpadAssistant#handleCallIn: CONNECTED");
+      this.missedCallSubscribe (undefined);
+      this.buttonDisconnectON (true);
+    }
   },
 
-  handleCallOut: function () {
+  handleCallOut: function (state, message) {
     QDLogger.log ("DialpadAssistant#handleCallOut");
 
     // If active call, show disconnect button
@@ -198,7 +249,7 @@ var DialpadAssistant = Class.create ({
   },
 
   // This is not expected, so let's get stuck into this trap for now...
-  handleInvalid: function () {
+  handleInvalid: function (state, message) {
     QDLogger.log ("DialpadAssistant#handleInvalid");
     this.buttonEmptyON (true);
   },
@@ -254,6 +305,41 @@ var DialpadAssistant = Class.create ({
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
+  incomingCallPopup: function (caller, missedCallSubscribe) {
+    QDLogger.log ("DialpadAssistant#incomingCallPopup");
+
+    var appController = Mojo.Controller.getAppController();
+    appController.createStageWithCallback(
+      {
+	name:        "incomingcallPopupAlert",
+	lightweight:  true,
+	height:       100
+      },
+      function (stageController) {
+	stageController.pushScene ("incomingcall", caller, missedCallSubscribe);
+      }.bind (this),
+      "popupalert"
+    );
+  },
+
+  missedCallSubscription: false,
+  missedCallSubscribe: function (callback) {
+    if (callback !== undefined) {
+      this.missedCallSubscription = callback;
+    } else {
+      this.missedCallSubscription = false;
+    }
+  },
+
+  missedCallInform: function () {
+    if (this.missedCallSubscription) {
+      this.missedCallSubscription ();
+    }
+  },
+
+
+/* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
+
   /** DIALPAD BUTTONS **/
   numberClick: function (event, key) {
     QDLogger.log ( "DialpadAssistant#numberclick", "key=", key);
@@ -281,7 +367,7 @@ var DialpadAssistant = Class.create ({
   disconnectClick: function (event) {
     QDLogger.log ( "DialpadAssistant::disconnectClick", this.dialString);
 
-    // If a call was active, terminate it and hide dial button
+    // If a call was active, terminate it and hide disconnect button
     if (LinphoneCallState.callACTIVE ()) {
       LinphoneService.terminate ();
       this.buttonEmptyON ();
@@ -544,6 +630,6 @@ var DialpadAssistant = Class.create ({
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
     // Only to end the function list with no trailing comma...
-    dummy: function () {}
+    dummy: false
 
 });

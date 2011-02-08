@@ -1,6 +1,6 @@
 /*
-	Linphone (webOS port)
-	Copyright (c) 2011, WebOS Internals
+	Phone
+	Copyright (c) 2007-2009, Palm Inc.
 	All rights reserved.
 
 */
@@ -8,6 +8,7 @@
 @import url(menus.css);
 @import url(preferences.css);
 @import url(dialpad.css);
+@import url(notification.css);
 
 /*
 body.palm-default {

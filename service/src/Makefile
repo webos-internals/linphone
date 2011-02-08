@@ -15,7 +15,7 @@
 # Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ===============================================================================
 
-VERSION = 0.2
+VERSION = 0.2.1
 
 STAGING_DIR = /srv/preware/cross-compile/staging/$(ARCH)
 CC = gcc

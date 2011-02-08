@@ -45,6 +45,7 @@ var LinphoneService = {
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
   register: function (name, password, domain, proxy, callback) {
+    QDLogger.log("LinphoneService#register: name =", name, "/ password =", password, "/ domain =", domain, "/ proxy =", proxy);
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "register",
       parameters: {
@@ -59,6 +60,7 @@ var LinphoneService = {
   },
 
   unregister: function (callback) {
+    QDLogger.log("LinphoneService#unregister");
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "unregister",
       onSuccess: callback,
@@ -80,7 +82,18 @@ var LinphoneService = {
     return request;
   },
 
+  answer: function (callback) {
+    QDLogger.log("LinphoneService#answer");
+    var request = new Mojo.Service.Request(this.lpsUri, {
+      method: "answer",
+      onSuccess: callback,
+      onFailure: callback
+    });
+    return request;
+  },
+
   terminate: function (callback) {
+    QDLogger.log("LinphoneService#terminate");
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "terminate",
       onSuccess: callback,
@@ -134,6 +147,7 @@ var LinphoneService = {
   },
 
   signalGState: function (callback) {
+    QDLogger.log("LinphoneService#signalGState");
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "signalGState",
       onSuccess: callback,
@@ -145,6 +159,7 @@ var LinphoneService = {
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
   quit: function (callback) {
+    QDLogger.log("LinphoneService#quit");
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "quit",
       onSuccess: callback,

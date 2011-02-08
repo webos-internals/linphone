@@ -1,0 +1,418 @@
+/*!
+ * Phone
+ * Incoming Call Notifications
+ * Copyright (c) 2007-2009, Palm Inc.
+ * All rights reserved.
+ */ 
+
+#incoming_message,
+.notification-area,
+.palm-scene,
+.incoming-frame {
+    height: 100%;
+    width: 100%;
+}
+
+.notification-panel {
+    color: #FFFFFF;
+    overflow: hidden;
+}
+
+.incoming-frame {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 5;
+    background: url(../images/incoming-call-frame-full-size.png) center center no-repeat;
+}
+
+.landscape .incoming-frame {
+    display: none;
+}
+
+.incoming-call-text {
+    display: table;
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    margin-left: -89px;
+    width: 178px;
+	text-align: center;
+	z-index: 10;
+	background: url(../images/incoming-text.png) top center no-repeat;
+}
+
+.landscape .incoming-call-text {
+    background: none;
+    bottom: 0px;
+}
+
+.incoming-call-text.no-photo {
+    margin-top: 21px;
+}
+
+.incoming-call-text.selected {
+	background: url(../images/incoming-text.png) bottom center no-repeat;
+	color: #222222;
+}
+
+.landscape .incoming-call-text.selected {
+    background: none;
+    color: inherit;
+}
+
+.incoming-container {
+	height: 82px;
+	display: table-cell;
+	vertical-align: middle;
+	font-size: 18px;
+	line-height: normal;
+	margin: 0px auto;
+}
+
+.incoming-container div {
+	max-width: 153px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin: 0 auto;
+}
+
+.incoming-container .incoming-number.blocked {
+	overflow: visible;
+	white-space: normal;
+}
+
+.incoming-background {
+    height: 240px;
+    width: 100%;
+    padding-top: 10px;
+	-webkit-border-image: url(../images/incoming-notification-gradient.png) 0 22 0 22 / 0px 22px 0px 22px repeat repeat;
+	-webkit-box-sizing: border-box;
+}
+
+.landscape .incoming-background {
+    height: 83px;
+    -webkit-border-image: url(../images/incoming-notification-gradient-landscape.png) 0 4 0 4 / 0px 4px 0px 4px repeat repeat;
+}
+
+.incoming-background-wrapper {
+	margin: -21px -15px 0px;
+}
+
+.incoming-name {
+	font-weight: bold;
+}
+
+.incoming-number-type {
+	text-transform: uppercase;
+	font-size: 14px;
+}
+
+.no-photo .incoming-name {
+	font-weight: normal;
+}
+
+.no-photo .incoming-number {
+	font-weight: bold;
+}
+
+.incoming-picture {
+	width: 320px;
+	height: 240px;
+	position: absolute;
+	left: 50%;
+	margin-left: -160px;
+	overflow: hidden;
+}
+
+.landscape .incoming-picture {
+    display: none;
+}
+
+.incoming-picture img {
+	width: 320px;
+	min-height: 240px;
+}
+
+.incoming-picture-container {
+	width: 176px;
+	height: 146px;
+	margin: 20px auto 0 auto;
+}
+
+.landscape .incoming-picture-container {
+    display: none;
+}
+
+img.incoming-picture-overlay {
+	position: absolute;
+	top: 8px;
+	-webkit-user-drag: none;
+}
+
+img.incoming-picture-square,
+img.incoming-picture-portrait {
+    position: absolute;
+	width: 170px;
+	min-height: 140px;
+	margin: 3px 0px 0px 3px;
+	clip: rect(0 170px 140px 0);
+}
+
+img.incoming-picture-landscape {
+    position: absolute;
+	height: 140px;
+	min-width: 170px;
+	margin: 3px 0px 0px 3px;
+	clip: rect(0 170px 140px 0);
+}
+
+.button-answer,
+.button-ignore {
+    width: 70px;
+    height: 70px;
+    position: fixed;
+    bottom: 8px;
+    z-index: 10;
+    border-top: 10px solid transparent;		
+    background-image: url(../images/button-ignore-answer.png);
+    background-repeat: no-repeat;
+    -webkit-background-clip: padding;
+}
+
+.landscape .button-answer,
+.landscape .button-ignore {
+    bottom: auto;
+    top: 50%;
+    margin-top: -42px;
+    border-bottom: 10px solid transparent;
+}
+
+.button-answer span,
+.button-ignore span {
+    display: none;
+}
+
+.button-ignore {
+    border-left: 15px solid transparent;
+    right: 0px;
+    background-position: top left;
+}
+
+.button-answer {
+    border-right: 15px solid transparent;
+    left: 0px;
+    background-position: top right;
+}
+
+.button-ignore:active,
+.button-answer:active {
+    background-position-y: bottom;
+}
+
+/* Flight Mode, System Notification styling */
+
+.system-notification {
+	overflow: hidden;
+	-webkit-user-select: none;
+	margin: 0;
+	padding: 0;
+	background: #000;
+	position: fixed;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	height: 215px;
+}
+
+.system-notification.provisioning .notification-text {
+	min-height: 80px;
+}
+
+.notification-message {
+	position: relative;
+	margin: 10px 20px 10px 20px;
+	min-height: 67px;
+}
+
+.notification-icon {
+	width: 64px;
+	height: 64px;
+	float: right;
+	margin-right: -6px;
+	padding-top: 7px;
+	background-color: blue;
+}
+
+.notification-icon.flight-mode {background: url(../images/flight-mode-icon.png) center right no-repeat;}
+.notification-icon.call-dropped {background: url(../images/popup-icon-dropped.png) center right no-repeat;}
+.notification-icon.call-missed {background: url(../images/popup-icon-missed.png) center right no-repeat;}
+.notification-icon.dial-fail {background: url(../images/popup-icon-error.png) center right no-repeat;}
+
+.notification-message .notification-text {
+	font-size: 16px;
+	font-weight: bold;
+	color: #fff;
+}
+
+.notification-message .notification-text .title {
+	font-size: 18px;
+	font-weight: bold;
+	color: #fff;
+}
+
+.notification-message .message-text {
+  font-size: 16px;
+  line-height: normal;
+}
+
+.notification-text .contact-number-label {
+	font-size: 14px;
+	text-transform: uppercase;
+	color: #b4b4b4;
+}
+
+.call-missed .notification-message,
+.dropped-call .notification-message {
+	margin: 25px 0px 0px 0px;
+	height: 80px;
+    border-width: 0 14px;
+    -webkit-border-image: url(../images/notification-bg.png) 0 14 80 14 repeat repeat;  
+    -webkit-box-sizing: border-box;
+}
+
+.call-missed .notification-message.selected,
+.dropped-call .notification-message.selected {
+    -webkit-border-image: url(../images/notification-bg.png) 80 14 0 14 repeat repeat;
+}
+
+.call-missed .notification-message .notification-text,
+.dropped-call .notification-message .notification-text {
+    padding: 3px 0px 0px 0px;
+    margin-left: -3px;
+}
+
+.missed-call-avatar {
+	float: right;
+	height: 58px;
+	width: 60px;
+	margin-right: -7px;
+	margin-top: 6px;
+}
+
+.missed-call-pic {
+	position: absolute;
+	right: 0px;
+	margin-right: -1px;
+	margin-top: 9px;
+	clip: rect(0,50px,50px,0);
+	border-radius: 7px;
+}
+
+.missed-call-pic.square {
+	width: 50px;
+	height: 50px;
+}
+
+.missed-call-pic.portrait {
+	width: 50px;
+}
+
+.missed-call-pic.landscape {
+	height: 50px;
+	right: 0px;
+	margin-right: -17px;
+}
+
+.missed-call-frame {
+	position: absolute;
+	margin-right: -10px;
+	margin-top: 5px;
+	width: 58px;
+	height: 58px;
+	background: url(../images/missed-call-frame.png) top center no-repeat;
+}
+
+.selected .missed-call-frame {
+  background-position: bottom center;
+}
+
+.button-primary {
+	height: 45px;
+	position: absolute;
+	bottom: 55px;
+	left: 0px;
+	right: 0px;
+	font-size: 20px;
+	color: #fff;
+	text-align: center;
+	line-height: 45px;
+	-webkit-border-image: url(../images/button-notification-affirmative.png) 0 20 45 20;
+	-webkit-box-sizing: border-box;
+	border-width: 0px 20px 0px 20px;
+}
+
+.button-primary:active {
+	-webkit-border-image: url(../images/button-notification-affirmative.png) 45 20 0 20;
+}
+
+.button-secondary {
+	height: 45px;
+	position: absolute;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	font-size: 20px;
+	color: #fff;
+	text-align: center;
+	line-height: 45px;
+	-webkit-border-image: url(../images/button-notification-dismiss.png) 0 20 45 20;
+	-webkit-box-sizing: border-box;
+	border-width: 0px 20px 0px 20px;
+}
+
+.button-secondary:active {
+	-webkit-border-image: url(../images/button-notification-dismiss.png) 45 20 0 20;
+}
+
+.palm-notification-button {
+	height: 45px;
+	font-size: 20px;
+	color: #fff;
+	text-align: center;
+	line-height: 45px;
+	margin: 10px;
+	-webkit-border-image: url(../images/palm-notification-button.png) 0 20 45 20;
+	-webkit-box-sizing: border-box;
+	-webkit-user-select: none;
+	border-width: 0px 20px 0px 20px;
+}
+
+.palm-notification-button:active {
+	-webkit-border-image: url(../images/palm-notification-button.png) 45 20 0 20;
+}
+
+.palm-notification-button.affirmative {
+	-webkit-border-image: url(../images/palm-notification-button-affirmative.png) 0 20 45 20;
+}
+
+.palm-notification-button.affirmative:active {
+	-webkit-border-image: url(../images/palm-notification-button-affirmative.png) 45 20 0 20;
+}
+
+.palm-notification-button.negative {
+	-webkit-border-image: url(../images/palm-notification-button-negative.png) 0 20 45 20;
+}
+
+.palm-notification-button.negative:active {
+	-webkit-border-image: url(../images/palm-notification-button-negative.png) 45 20 0 20;
+}
+
+.popupalert-container {
+	width: 320px;
+	height: 180px;
+	vertical-align: middle;
+	background-color: #000;
+	color: #FFF;
+}
