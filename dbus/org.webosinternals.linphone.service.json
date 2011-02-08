@@ -1,0 +1,14 @@
+{
+  "role": {
+     "exeName":"/var/usr/sbin/org.webosinternals.linphone.service",
+     "type": "regular",
+     "allowedNames": ["org.webosinternals.linphone.service"]
+  },
+  "permissions": [
+    {
+      "service":"org.webosinternals.linphone.service",
+      "inbound":["*"],
+      "outbound":["*"]
+    }
+  ]
+}
