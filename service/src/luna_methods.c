@@ -798,7 +798,7 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
 			 &lserror)) goto error;
     return true;
   }
-  if (!password || (password->child->type != JSON_STRING) || (strspn (password->child->text, ALLOWED_CHARS) != strlen (password->child->text))) {
+  if (!password || (password->child->type != JSON_STRING)) {
     if (!LSMessageReply (lshandle, message,
 			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing password\"}",
 			 &lserror)) goto error;
@@ -810,9 +810,11 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
   // Perform the SIP registration
   // (excerpt from linphone/console/commands.c)
   //...
-  if (password->child->text[0] != '\0'){
+  if (password->child->text[0] != '\0') {
     LinphoneAddress  *from;
     LinphoneAuthInfo *info;
+
+    // FIXME: what is "realm" really meant for?
     if ((from = linphone_address_new (identity->child->text)) != NULL){
       char realm[128];
       snprintf (realm, sizeof (realm)-1,"\"%s\"", linphone_address_get_domain (from));
@@ -822,6 +824,7 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
       linphone_auth_info_destroy (info);
     }
   }
+
   elem = linphone_core_get_proxy_config_list (lc);
   if (elem) {
     cfg = (LinphoneProxyConfig*) elem->data;
@@ -829,13 +832,16 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
   } else {
     cfg = linphone_proxy_config_new ();
   }
+
   linphone_proxy_config_set_identity (cfg, identity->child->text);
   linphone_proxy_config_set_server_addr (cfg, proxy->child->text);
   linphone_proxy_config_enable_register (cfg, TRUE);
+
   if (elem)
     linphone_proxy_config_done (cfg);
   else
     linphone_core_add_proxy_config (lc, cfg);
+
   linphone_core_set_default_proxy (lc, cfg);
   //...
   lpc = 0;
