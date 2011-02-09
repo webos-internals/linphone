@@ -3,8 +3,7 @@
 SCRIPTDIR="`dirname $0`"
 
 ARCH_LIST="\
- armv7 \
- armv6 \
+ arm \
  i686 \
  "
 
