@@ -115,15 +115,8 @@ var IncomingcallAssistant = Class.create ({
 //      this.announcer.closeIncomingCallDialog(true /* also deactivate stage */);
 //    } else{
       // incoming call stage is persistent, so leave window around but hide it
-      this.controller.stageController.deactivate (); // NO ERROR, BUT NOTHING HAPPENS
-
-
-// NO ERROR BUT NOT FUNCTIONAL
-//    this.controller.stageController.popScene (); // NO ERROR 1st, BUT REMOVES SCENE & NOT STAGE, THEN ISSUE WITH DUPLICATE STAGE
-
-// ERROR & KO
-//    this.controller.AppController.getStageController ("incomingcallPopup").deactivate ();
-//    Mojo.Controller.AppController.getStageController ("incomingcallPopup").deactivate ();
+      Mojo.Controller.getAppController().closeStage("incomingcallPopupAlert");
+      this.controller.stageController.deactivate ();
 //    }
   },
 
