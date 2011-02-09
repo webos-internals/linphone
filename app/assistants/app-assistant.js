@@ -116,7 +116,7 @@ AppAssistant.prototype.createPhoneStage = function(callback) {
       sc.document.addEventListener(Mojo.Event.stageDeactivate, function () { sc.useSceneTransitions (false); });
       sc.activate ();
       callback (sc);
-    }.bind(this)
+    }.bind (this)
   );
   
 };

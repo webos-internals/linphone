@@ -28,10 +28,10 @@ var LinphoneEventListener = {
   gstateSubscribe: function (callback) {
     // Subscribe to Battery Power Notifications
     this.gstateHandler = new Mojo.Service.Request (this.signalUri, {
-      method: 'addmatch',
+      method: "addmatch",
       parameters: {
-	"category": "/linphone",
-	"method": "generalState"
+	category: "/linphone",
+	method:   "generalState"
       },
       onSuccess: callback,
     });
@@ -50,10 +50,10 @@ var LinphoneEventListener = {
   dstatusSubscribe: function (callback) {
     // Subscribe to Battery Power Notifications
     this.dstatusHandler = new Mojo.Service.Request (this.signalUri, {
-      method: 'addmatch',
+      method: "addmatch",
       parameters: {
-	"category": "/linphone",
-	"method": "displayStatus"
+	category: "/linphone",
+	method:   "displayStatus"
       },
       onSuccess: callback,
     });
@@ -72,10 +72,10 @@ var LinphoneEventListener = {
   dsomethingSubscribe: function (callback) {
     // Subscribe to Battery Power Notifications
     this.dsomethingHandler = new Mojo.Service.Request (this.signalUri, {
-      method: 'addmatch',
+      method: "addmatch",
       parameters: {
-	"category": "/linphone",
-	"method": "displaySomething"
+	category: "/linphone",
+	method:   "displaySomething"
       },
       onSuccess: callback,
     });

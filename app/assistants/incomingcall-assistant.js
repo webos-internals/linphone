@@ -13,9 +13,9 @@ var IncomingcallAssistant = Class.create ({
       this.dialog = true;
     }
 
-//#    this.appControl = Mojo.Controller.getAppController();
-//#    this.appAssistant = this.appControl.assistant;
-    this.appAssistant = Mojo.Controller.getAppController ().assistant;
+    this.appControl = Mojo.Controller.getAppController();
+    this.appAssistant = this.appControl.assistant;
+//    this.appAssistant = Mojo.Controller.getAppController ().assistant;
 
     // Register so we get informed of any missed call
     this.missedCallSubscribe (this.onMissed.bind (this));
@@ -26,7 +26,7 @@ var IncomingcallAssistant = Class.create ({
 
     this.sceneCtrl = this.dialogSceneController || this.controller;
 
-//    this.controller.listen(this.controller.document, Mojo.Event.deactivate, this.onBlur.bind(this));
+    this.controller.listen (this.controller.document, Mojo.Event.deactivate, this.onBlur.bind (this));
 
     this.sceneCtrl.get ('answer_button').addEventListener (Mojo.Event.tap, this.answerCall.bindAsEventListener (this));
     this.sceneCtrl.get ('reject_button').addEventListener (Mojo.Event.tap, this.rejectCall.bindAsEventListener (this));
@@ -115,8 +115,21 @@ var IncomingcallAssistant = Class.create ({
 //      this.announcer.closeIncomingCallDialog(true /* also deactivate stage */);
 //    } else{
       // incoming call stage is persistent, so leave window around but hide it
-      this.controller.stageController.deactivate ();
+      this.controller.stageController.deactivate (); // NO ERROR, BUT NOTHING HAPPENS
+
+
+// NO ERROR BUT NOT FUNCTIONAL
+//    this.controller.stageController.popScene (); // NO ERROR 1st, BUT REMOVES SCENE & NOT STAGE, THEN ISSUE WITH DUPLICATE STAGE
+
+// ERROR & KO
+//    this.controller.AppController.getStageController ("incomingcallPopup").deactivate ();
+//    Mojo.Controller.AppController.getStageController ("incomingcallPopup").deactivate ();
 //    }
+  },
+
+  onBlur: function () {
+    QDLogger.log ("IncomingcallAssistant#onBlur", this.exitStatus);
+
   },
   
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */

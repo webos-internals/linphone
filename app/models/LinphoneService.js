@@ -20,7 +20,7 @@
 
 var LinphoneService = {
 
-  lpsUri: "palm://" + Mojo.appInfo.id + "service",
+  lpsUri: "palm://" + Mojo.appInfo.id + ".service",
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
