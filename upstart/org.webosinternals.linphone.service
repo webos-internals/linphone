@@ -2,9 +2,6 @@ description "LinPhone Service"
 
 start on stopped finish
 
-script
-export LD_LIBRARY_PATH=/media/cryptofs/apps/usr/palm/applications/org.webosinternals.linphone/bin
-/var/usr/sbin/org.webosinternals.ipkgservice
-end script
+exec /var/usr/sbin/org.webosinternals.linphone.service
 
 respawn
