@@ -31,12 +31,12 @@ install -m 755 $APPS/usr/palm/applications/${PID}/bin/${BIN} /var/usr/sbin/${SID
 
 # Install the dbus service
 mkdir -p /var/palm/system-services
-cp $APPS/usr/palm/applications/${PID}/dbus/${SID}.service /var/palm/system-services/${SID}.service
+cp $APPS/usr/palm/applications/${PID}/dbus/service /var/palm/system-services/${SID}.service
 
 # Install the ls2 roles
 mkdir -p /var/palm/ls2/roles/prv /var/palm/ls2/roles/pub
-cp $APPS/usr/palm/applications/${PID}/dbus/${SID}.json /var/palm/ls2/roles/prv/${SID}.json
-cp $APPS/usr/palm/applications/${PID}/dbus/${SID}.json /var/palm/ls2/roles/pub/${SID}.json
+cp $APPS/usr/palm/applications/${PID}/dbus/json /var/palm/ls2/roles/prv/${SID}.json
+cp $APPS/usr/palm/applications/${PID}/dbus/json /var/palm/ls2/roles/pub/${SID}.json
 /usr/bin/ls-control scan-services || true
 
 # Install the upstart script
