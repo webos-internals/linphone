@@ -26,8 +26,11 @@ var preferenceCookie = {
     sipName:     false,
     sipPassword: false,
     sipDomain:   false,
+    sipUseProxy: false,
     sipUpdated:  false,
-    sipValid:    false
+    sipValid:    false,
+
+    sipUnregisterOnExit: true
   },
 
   load: function () {

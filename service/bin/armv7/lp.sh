@@ -1,0 +1,1 @@
+../script/lp.sh

@@ -63,27 +63,34 @@ var DialpadAssistant = Class.create ({
     LinphoneEventListener.gstateSubscribe (this.gstateUpdate.bind (this));
     LinphoneService.signalGState ();
 
+    // Say we must try to register
+    this.forceRegistration = true;
   },
 
   activate: function (args) {
     QDLogger.log ("DialpadAssistant#activate");
 
     this.prefs = preferenceCookie.load ();
-    QDLogger.log ("DialpadAssistant#activate: sipName     =", this.prefs.sipName);
-    QDLogger.log ("DialpadAssistant#activate: sipPassword =", this.prefs.sipPassword);
-    QDLogger.log ("DialpadAssistant#activate: sipDomain   =", this.prefs.sipDomain);
-    QDLogger.log ("DialpadAssistant#activate: sipUseProxy =", this.prefs.sipUseProxy);
-    QDLogger.log ("DialpadAssistant#activate: sipProxy    =", this.prefs.sipProxy);
-    QDLogger.log ("DialpadAssistant#activate: sipUpdated  =", this.prefs.sipUpdated);
-    QDLogger.log ("DialpadAssistant#activate: sipValid    =", this.prefs.sipValid);
+    QDLogger.log ("DialpadAssistant#activate: sipName     =",         this.prefs.sipName);
+    QDLogger.log ("DialpadAssistant#activate: sipPassword =",         this.prefs.sipPassword);
+    QDLogger.log ("DialpadAssistant#activate: sipDomain   =",         this.prefs.sipDomain);
+    QDLogger.log ("DialpadAssistant#activate: sipUseProxy =",         this.prefs.sipUseProxy);
+    QDLogger.log ("DialpadAssistant#activate: sipProxy    =",         this.prefs.sipProxy);
+    QDLogger.log ("DialpadAssistant#activate: sipUpdated  =",         this.prefs.sipUpdated);
+    QDLogger.log ("DialpadAssistant#activate: sipValid    =",         this.prefs.sipValid);
+    QDLogger.log ("DialpadAssistant#activate: sipUnregisterOnExit =", this.prefs.sipUnregisterOnExit);
 
     // Register if SIP parameters were updated
-    if (   this.prefs.sipUpdated
+    if (   (   this.forceRegistration 
+	    || this.prefs.sipUpdated
+	   )
 	&& this.prefs.sipValid
 	&& LinphoneCallState.powerOK ()) {
+      QDLogger.log ("DialpadAssistant#activate: registering...");
+
+      this.forceRegistration = false;
       LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
       preferenceCookie.save ("sipUpdated", false);
-      QDLogger.log ("DialpadAssistant#activate: registering...");
     }
 
     // keyboard and document listeners
@@ -102,7 +109,10 @@ var DialpadAssistant = Class.create ({
     TelephonyCommands.setAudioScenario ("media_back_speaker");
 //?    TelephonyCommands.powerEndActivity ('linphone');
 
-    LinphoneEventListener.gstateUnsubscribe ();
+    if (this.prefs.sipUnregisterOnExit) {
+      LinphoneService.unregister ();
+      LinphoneEventListener.gstateUnsubscribe ();
+    }
   },
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
@@ -169,8 +179,8 @@ var DialpadAssistant = Class.create ({
 
     // Register if we can
     if (LinphoneCallState.registerNONE () && this.prefs.sipValid) {
-      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
       QDLogger.log ("DialpadAssistant#handlePower: registering...");
+      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
     }
   },
 
@@ -188,11 +198,18 @@ var DialpadAssistant = Class.create ({
     if (!LinphoneCallState.registerVALID ()) {
       QDLogger.log ("DialpadAssistant#handleRegister: !VALID");
       this.buttonEmptyON (true);
+      
+      if (this.forceRegistration && this.prefs.sipValid) {
+	QDLogger.log ("DialpadAssistant#handleRegister: registering... (forced)");
+	this.forceRegistration = false;
+	LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
+      }
     }
     else if (!LinphoneCallState.callACTIVE ()) {
       QDLogger.log ("DialpadAssistant#handleRegister: VALID and !callACTIVE");
       this.buttonDialON (true);
     }
+
   },
 
   handleCall: function (state, message) {
@@ -336,7 +353,6 @@ var DialpadAssistant = Class.create ({
       this.missedCallSubscription ();
     }
   },
-
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 

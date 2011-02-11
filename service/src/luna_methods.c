@@ -31,7 +31,22 @@
 #include "luna_service.h"
 #include "luna_methods.h"
 
-#define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:@"
+#define CHARLIST_ALPHA   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#define CHARLIST_NUMERIC "0123456789"
+#define CHARLIST_QUOTE   "\"'`"
+#define CHARLIST_SYMBOL  "!#$%&*+-/=?@\\^_|~"
+#define CHARLIST_PUNCT   " ,.:;"
+#define CHARLIST_GROUP   "()<>[]{}"
+
+#define CHARLIST_PRINT   CHARLIST_ALPHA  CHARLIST_NUMERIC CHARLIST_QUOTE \
+                         CHARLIST_SYMBOL CHARLIST_PUNCT   CHARLIST_GROUP  
+
+//#define ALLOWED_CHARS_SIP_IDENTITY CHARLIST_ALPHA CHARLIST_NUMERIC "._-:@"
+//#define ALLOWED_CHARS_SIP_PASSWORD CHARLIST_PRINT
+//#define ALLOWED_CHARS_SIP_PROXY    CHARLIST_ALPHA CHARLIST_NUMERIC "._-:"
+//#define ALLOWED_CHARS_CALL_SIPURL  CHARLIST_ALPHA CHARLIST_NUMERIC "._-@:<>"
+
+//#define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:@"
 
 #define API_VERSION "1"
 
@@ -48,6 +63,100 @@
 static char buffer[MAXBUFLEN];
 static char tmp_buffer[MAXBUFLEN];
 static char esc_buffer[MAXBUFLEN];
+
+
+//
+// Escape a string so that it can be used directly in a JSON response.
+// In general, this means escaping quotes, backslashes and control chars.
+// It uses the static esc_buffer, which must be twice as large as the
+// largest string this routine can handle.
+//
+static char *json_escape_str (char *str)
+{
+  const char *json_hex_chars = "0123456789abcdef";
+
+  // Initialise the output buffer
+  strcpy (esc_buffer, "");
+
+  // Check the constraints on the input string
+  if (strlen(str) > MAXBUFLEN) return (char *) esc_buffer;
+
+  // Initialise the pointers used to step through the input and output.
+  char *resultsPt = (char *) esc_buffer;
+  int pos = 0, start_offset = 0;
+
+  // Traverse the input, copying to the output in the largest chunks
+  // possible, escaping characters as we go.
+  unsigned char c;
+  do {
+    c = str[pos];
+    switch (c) {
+    case '\0':
+      // Terminate the copying
+      break;
+    case '\b':
+    case '\n':
+    case '\r':
+    case '\t':
+    case '"':
+    case '\\': {
+      // Copy the chunk before the character which must be escaped
+      if (pos - start_offset > 0) {
+	memcpy(resultsPt, str + start_offset, pos - start_offset);
+	resultsPt += pos - start_offset;
+      };
+      
+      // Escape the character
+      if      (c == '\b') {memcpy(resultsPt, "\\b",  2); resultsPt += 2;} 
+      else if (c == '\n') {memcpy(resultsPt, "\\n",  2); resultsPt += 2;} 
+      else if (c == '\r') {memcpy(resultsPt, "\\r",  2); resultsPt += 2;} 
+      else if (c == '\t') {memcpy(resultsPt, "\\t",  2); resultsPt += 2;} 
+      else if (c == '"')  {memcpy(resultsPt, "\\\"", 2); resultsPt += 2;} 
+      else if (c == '\\') {memcpy(resultsPt, "\\\\", 2); resultsPt += 2;} 
+
+      // Reset the start of the next chunk
+      start_offset = ++pos;
+      break;
+    }
+
+    default:
+      
+      // Check for "special" characters
+      if ((c < ' ') || (c > 127)) {
+
+	// Copy the chunk before the character which must be escaped
+	if (pos - start_offset > 0) {
+	  memcpy (resultsPt, str + start_offset, pos - start_offset);
+	  resultsPt += pos - start_offset;
+	}
+
+	// Insert a normalised representation
+	sprintf (resultsPt, "\\u00%c%c",
+		 json_hex_chars[c >> 4],
+		 json_hex_chars[c & 0xf]);
+
+	// Reset the start of the next chunk
+	start_offset = ++pos;
+      }
+      else {
+	// Just move along the source string, without copying
+	pos++;
+      }
+    }
+  } while (c);
+
+  // Copy the final chunk, if required
+  if (pos - start_offset > 0) {
+    memcpy (resultsPt, str + start_offset, pos - start_offset);
+    resultsPt += pos - start_offset;
+  } 
+
+  // Terminate the output buffer ...
+  memcpy (resultsPt, "\0", 1);
+
+  // and return a pointer to it.
+  return (char *) esc_buffer;
+}
 
 //
 // Linphone core passed variables
@@ -103,7 +212,7 @@ lc_cb_bye_received (LinphoneCore *lc, const char *from) {
 
   LSError lserror;
   LSErrorInit (&lserror);
-  sprintf (buffer, "{\"byeReceivedFrom\": \"%s\"}", from);
+  sprintf (buffer, "{\"byeReceivedFrom\": \"%s\"}", json_escape_str (from));
   if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "byeReceivedFrom", buffer, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
@@ -131,7 +240,7 @@ lc_cb_display_status (LinphoneCore *lc, const char *something) {
 
   LSError lserror;
   LSErrorInit (&lserror);
-  sprintf (buffer, "{\"displayStatus\": \"%s\"}", something);
+  sprintf (buffer, "{\"displayStatus\": \"%s\"}", json_escape_str (something));
   if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayStatus", buffer, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
@@ -145,7 +254,7 @@ lc_cb_display_something (LinphoneCore *lc, const char *something) {
 
   LSError lserror;
   LSErrorInit (&lserror);
-  sprintf (buffer, "{\"displaySomething\": \"%s\"}", something);
+  sprintf (buffer, "{\"displaySomething\": \"%s\"}", json_escape_str(something));
   if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displaySomething", buffer, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
@@ -159,7 +268,7 @@ lc_cb_display_warning (LinphoneCore *lc, const char *something) {
 
   LSError lserror;
   LSErrorInit(&lserror);
-  sprintf (buffer, "{\"displayWarning\": \"%s\"}", something);
+  sprintf (buffer, "{\"displayWarning\": \"%s\"}", json_escape_str (something));
   if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayWarning", buffer, &lserror)) {
     LSErrorPrint(&lserror, stderr);
     LSErrorFree(&lserror);
@@ -184,7 +293,7 @@ ls_signal_general_state (unsigned *state, unsigned char *message) {
   LSError lserror;
   LSErrorInit (&lserror);
 
-  sprintf (buffer, "{\"generalState\": \"%s\", \"message\": \"%s\"}", state, (message ? message : ""));
+  sprintf (buffer, "{\"generalState\": \"%s\", \"message\": \"%s\"}", state, (message ? json_escape_str (message) : ""));
   if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "generalState", buffer, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
@@ -424,100 +533,6 @@ static void lc_start () {
 
 
 //
-// Escape a string so that it can be used directly in a JSON response.
-// In general, this means escaping quotes, backslashes and control chars.
-// It uses the static esc_buffer, which must be twice as large as the
-// largest string this routine can handle.
-//
-static char *json_escape_str(char *str)
-{
-  const char *json_hex_chars = "0123456789abcdef";
-
-  // Initialise the output buffer
-  strcpy (esc_buffer, "");
-
-  // Check the constraints on the input string
-  if (strlen(str) > MAXBUFLEN) return (char *) esc_buffer;
-
-  // Initialise the pointers used to step through the input and output.
-  char *resultsPt = (char *) esc_buffer;
-  int pos = 0, start_offset = 0;
-
-  // Traverse the input, copying to the output in the largest chunks
-  // possible, escaping characters as we go.
-  unsigned char c;
-  do {
-    c = str[pos];
-    switch (c) {
-    case '\0':
-      // Terminate the copying
-      break;
-    case '\b':
-    case '\n':
-    case '\r':
-    case '\t':
-    case '"':
-    case '\\': {
-      // Copy the chunk before the character which must be escaped
-      if (pos - start_offset > 0) {
-	memcpy(resultsPt, str + start_offset, pos - start_offset);
-	resultsPt += pos - start_offset;
-      };
-      
-      // Escape the character
-      if      (c == '\b') {memcpy(resultsPt, "\\b",  2); resultsPt += 2;} 
-      else if (c == '\n') {memcpy(resultsPt, "\\n",  2); resultsPt += 2;} 
-      else if (c == '\r') {memcpy(resultsPt, "\\r",  2); resultsPt += 2;} 
-      else if (c == '\t') {memcpy(resultsPt, "\\t",  2); resultsPt += 2;} 
-      else if (c == '"')  {memcpy(resultsPt, "\\\"", 2); resultsPt += 2;} 
-      else if (c == '\\') {memcpy(resultsPt, "\\\\", 2); resultsPt += 2;} 
-
-      // Reset the start of the next chunk
-      start_offset = ++pos;
-      break;
-    }
-
-    default:
-      
-      // Check for "special" characters
-      if ((c < ' ') || (c > 127)) {
-
-	// Copy the chunk before the character which must be escaped
-	if (pos - start_offset > 0) {
-	  memcpy (resultsPt, str + start_offset, pos - start_offset);
-	  resultsPt += pos - start_offset;
-	}
-
-	// Insert a normalised representation
-	sprintf (resultsPt, "\\u00%c%c",
-		 json_hex_chars[c >> 4],
-		 json_hex_chars[c & 0xf]);
-
-	// Reset the start of the next chunk
-	start_offset = ++pos;
-      }
-      else {
-	// Just move along the source string, without copying
-	pos++;
-      }
-    }
-  } while (c);
-
-  // Copy the final chunk, if required
-  if (pos - start_offset > 0) {
-    memcpy (resultsPt, str + start_offset, pos - start_offset);
-    resultsPt += pos - start_offset;
-  } 
-
-  // Terminate the output buffer ...
-  memcpy (resultsPt, "\0", 1);
-
-  // and return a pointer to it.
-  return (char *) esc_buffer;
-}
-
-
-//
 // A dummy method, useful for unimplemented functions or as a status function.
 // Called directly from webOS, and returns directly to webOS.
 //
@@ -586,7 +601,7 @@ bool soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   dev = linphone_core_get_sound_devices (lc);
   lpc = 0;
   for (i=0; dev[i]!=NULL; i++) {
-    sprintf (tmp_buffer, "%s\"%i: %s\"", sep, i, dev[i]);
+    sprintf (tmp_buffer, "%s\"%i: %s\"", sep, i, json_escape_str (dev[i]));
     strcat (buffer, tmp_buffer);
     sep = ", ";
   }
@@ -616,7 +631,7 @@ bool soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx, ch
   json_t *device = json_find_first_label (object, "device");
 
   // Check the arguments
-  if (!device || (device->child->type != JSON_STRING) || (strspn (device->child->text, ALLOWED_CHARS " ") != strlen (device->child->text))) {
+  if (!device || (device->child->type != JSON_STRING) || (strspn (device->child->text, CHARLIST_PRINT) != strlen (device->child->text))) {
     if (!LSMessageReply (lshandle, message,
 			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing device\"}",
 			 &lserror)) goto error;
@@ -667,13 +682,13 @@ bool soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx, c
 
   strcpy (buffer, "{\"returnValue\": true");
 
-  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "ringer", ringer);
+  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "ringer", json_escape_str (ringer));
   strcat (buffer, tmp_buffer);
 
-  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "playback", playback);
+  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "playback", json_escape_str (playback));
   strcat (buffer, tmp_buffer);
 
-  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "capture", capture);
+  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "capture", json_escape_str (capture));
   strcat (buffer, tmp_buffer);
 
   strcat (buffer, "}");
@@ -786,19 +801,19 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
   json_t *password = !object ? NULL : json_find_first_label (object, "password");
 
   // Check the arguments
-  if (!identity || (identity->child->type != JSON_STRING) || (strspn (identity->child->text, ALLOWED_CHARS) != strlen (identity->child->text))) {
+  if (!identity || (identity->child->type != JSON_STRING) || (strspn (identity->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_SIP_IDENTITY*/) != strlen (identity->child->text))) {
     if (!LSMessageReply (lshandle, message,
 			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing identity\"}",
 			 &lserror)) goto error;
     return true;
   }
-  if (!proxy || (proxy->child->type != JSON_STRING) || (strspn (proxy->child->text, ALLOWED_CHARS) != strlen (proxy->child->text))) {
+  if (!proxy || (proxy->child->type != JSON_STRING) || (strspn (proxy->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_SIP_PROXY*/) != strlen (proxy->child->text))) {
     if (!LSMessageReply (lshandle, message,
 			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing proxy\"}",
 			 &lserror)) goto error;
     return true;
   }
-  if (!password || (password->child->type != JSON_STRING)) {
+  if (!password || (password->child->type != JSON_STRING) || (strspn (proxy->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_SIP_PASSWORD*/) != strlen (proxy->child->text))) {
     if (!LSMessageReply (lshandle, message,
 			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing password\"}",
 			 &lserror)) goto error;
@@ -814,8 +829,8 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
     LinphoneAddress  *from;
     LinphoneAuthInfo *info;
 
-    // FIXME: what is "realm" really meant for?
-    if ((from = linphone_address_new (identity->child->text)) != NULL){
+    // FIXME: what is "realm" really meant for, as it is unused so far?
+    if ((from = linphone_address_new (identity->child->text)) != NULL) {
       char realm[128];
       snprintf (realm, sizeof (realm)-1,"\"%s\"", linphone_address_get_domain (from));
       info = linphone_auth_info_new (linphone_address_get_username (from), NULL, password->child->text, NULL, NULL);
@@ -881,7 +896,7 @@ bool status_method(LSHandle* lshandle, LSMessage *message, void *ctx) {
   lpc = 0;
 
   if (registered) {
-    sprintf (buffer, "{\"returnValue\": true, \"registered\": true, \"identity\":\"%s\", \"duration\": %i}", identity, expires);
+    sprintf (buffer, "{\"returnValue\": true, \"registered\": true, \"identity\":\"%s\", \"duration\": %i}", json_escape_str (identity), expires);
   } else {
     strcpy (buffer, "{\"returnValue\": true, \"registered\": false}");
   }
@@ -905,12 +920,26 @@ bool unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
+// FIXME: is there a need for this later? 
+//
+//  // Extract the arguments from the message
+//  json_t *object = json_parse_document (LSMessageGetPayload(message));
+//  json_t *sipurl = json_find_first_label (object, "proxy");
+//
+//  // Check the arguments
+//  if (!proxy || (proxy->child->type != JSON_STRING) || (strspn (proxy->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_CALL_PROXY*/) != strlen (proxy->child->text))) {
+//    if (!LSMessageReply (lshandle, message,
+//			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing proxy\"}",
+//			 &lserror)) goto error;
+//    return true;
+//  }
+
   LinphoneProxyConfig *cfg = NULL;
   lpc = 1;
   linphone_core_get_default_proxy (lc, &cfg);
   if (cfg && linphone_proxy_config_is_registered (cfg)) {
     linphone_proxy_config_edit (cfg);
-    linphone_proxy_config_enable_register (cfg,FALSE);
+    linphone_proxy_config_enable_register (cfg, FALSE);
     linphone_proxy_config_done (cfg);
   } else {
 //    linphonec_out ("unregistered\n");
@@ -938,7 +967,7 @@ bool call_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subco
   json_t *sipurl = json_find_first_label (object, "sipurl");
 
   // Check the arguments
-  if (!sipurl || (sipurl->child->type != JSON_STRING) || (strspn (sipurl->child->text, ALLOWED_CHARS) != strlen (sipurl->child->text))) {
+  if (!sipurl || (sipurl->child->type != JSON_STRING) || (strspn (sipurl->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_CALL_SIPURL*/) != strlen (sipurl->child->text))) {
     if (!LSMessageReply (lshandle, message,
 			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing sipurl\"}",
 			 &lserror)) goto error;

@@ -34,6 +34,11 @@ var LinphoneEventListener = {
 	method:   "generalState"
       },
       onSuccess: callback,
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneEventListener#gstateSubscribe failure: %j", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
   },
 
@@ -56,6 +61,7 @@ var LinphoneEventListener = {
 	method:   "displayStatus"
       },
       onSuccess: callback,
+      onFailure: callback
     });
   },
 
@@ -78,6 +84,7 @@ var LinphoneEventListener = {
 	method:   "displaySomething"
       },
       onSuccess: callback,
+      onFailure: callback
     });
 
   },

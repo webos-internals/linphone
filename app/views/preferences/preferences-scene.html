@@ -35,6 +35,14 @@
     <div class="palm-group-title" id="sip">SIP</div>
     <div class="palm-list">
 
+      <div class="palm-row" style="display:none">
+	<div class="palm-row-wrapper">
+	  <div class="help-overlay" id="help-sipUnregisterOnExit"></div>
+	  <div class="label left" id="show-sipUnregisterOnExit">Unregister on App exit</div>
+	  <div x-mojo-element="ToggleButton" id="sipUnregisterOnExit"></div>
+	</div>
+      </div>
+
       <div class="palm-row first">
 	<div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true">
 	  <div class="title">
@@ -64,8 +72,8 @@
 
       <div class="palm-row last">
 	<div class="palm-row-wrapper">
-	  <div class="help-overlay" id="help-showTypeOther"></div>
-	  <div class="label left" id="show-other-types">Use Proxy</div>
+	  <div class="help-overlay" id="help-sipUseProxy"></div>
+	  <div class="label left" id="show-sipUseProxy">Use Proxy</div>
 	  <div x-mojo-element="ToggleButton" id="sipUseProxy"></div>
 	</div>
 	<div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true" id="sipProxyField" style="display:none">

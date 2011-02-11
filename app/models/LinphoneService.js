@@ -24,11 +24,15 @@ var LinphoneService = {
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
-  version: function(callback) {
+  version: function (callback) {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "version",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#version failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -37,7 +41,11 @@ var LinphoneService = {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "status",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#status failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -54,7 +62,11 @@ var LinphoneService = {
 	"proxy":    "sip:" + proxy,
       },
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#register failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -64,7 +76,11 @@ var LinphoneService = {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "unregister",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#unregister failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -77,7 +93,11 @@ var LinphoneService = {
 	"sipurl": number,
       },
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#call failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -87,7 +107,11 @@ var LinphoneService = {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "answer",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#answer failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -97,7 +121,11 @@ var LinphoneService = {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "terminate",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#terminate failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -151,7 +179,11 @@ var LinphoneService = {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "signalGState",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#signalGState failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },
@@ -163,7 +195,11 @@ var LinphoneService = {
     var request = new Mojo.Service.Request(this.lpsUri, {
       method: "quit",
       onSuccess: callback,
-      onFailure: callback
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#quit failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
     });
     return request;
   },

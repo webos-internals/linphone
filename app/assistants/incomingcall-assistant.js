@@ -4,7 +4,7 @@ var IncomingcallAssistant = Class.create ({
     QDLogger.log( "IncomingcallAssistant#initialize", caller);
 
     // Remove the useless <sip:> wrapper
-    this.caller              = caller.replace (/^<sip:|>$/ig, "");
+    this.caller              = caller.replace (/^.*<sip:|>$/ig, "");
     this.missedCallSubscribe = missedCallSubscribe;
 
     this.dialogSceneController = dialogSceneController;
