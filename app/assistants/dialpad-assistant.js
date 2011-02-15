@@ -19,16 +19,25 @@ var DialpadAssistant = Class.create ({
     ]
   },
 
+  deviceInfo: false,
+
   initialize: function (params) {
     QDLogger.log ("DialpadAssistant#initialize");
 
     this.dialString = "";
     this.inputNecessaryButtonsVisible = true;
 
+    this.deviceInfo = Mojo.Environment.DeviceInfo;
   },
 
   setup: function () {
     QDLogger.log ("DialpadAssistant#setup");
+
+    // Add the appropriate class to the scene depending on we are a Pre or a Pixi...
+    var screenHeight = this.deviceInfo["screenHeight"];
+    QDLogger.log ("DialpadAssistant#setup: screenHeight =", screenHeight);
+    this.controller.get ("dialpad").addClassName ((screenHeight == 480) ? " pre" : " pixi");
+    QDLogger.log ("DialpadAssistant#setup: dialpad.class =", this.controller.get ("dialpad").className);
 
     // Setup menu
     this.controller.setupWidget (Mojo.Menu.appMenu, {omitDefaultItems: true}, this.menuModel);
