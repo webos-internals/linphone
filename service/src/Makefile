@@ -21,7 +21,7 @@ STAGING_DIR = /srv/preware/cross-compile/staging/$(ARCH)
 CC = gcc
 
 # Target the final installation & force a different runtime dir (used to be ${STAGING_DIR}/usr/lib, now rpath-linked... Quite nice!)
-RUNTIME_DIR = /media/cryptofs/apps/usr/palm/applications/org.webosinternals.linphone/bin
+RUNTIME_DIR = /var/usr/lib
 
 CFLAGS  := -g -DVERSION=\"${VERSION}\" -I${STAGING_DIR}/usr/include/glib-2.0 -I${STAGING_DIR}/usr/lib/glib-2.0/include -I${STAGING_DIR}/usr/include
 LDFLAGS := -g -L${STAGING_DIR}/usr/lib -Wl,-rpath,${RUNTIME_DIR} -Wl,-rpath-link,${STAGING_DIR}/usr/lib -llunaservice -lmjson -lglib-2.0 -llinphone
