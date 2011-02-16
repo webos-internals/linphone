@@ -10,6 +10,7 @@ APPS=/media/cryptofs/apps
 
 # Remove the service executable
 rm -f /var/usr/sbin/${SID}
+rm -rf /var/usr/lib/${PID}
 
 # Remove the dbus service
 rm -f /var/palm/system-services/${SID}.service
@@ -25,9 +26,11 @@ rm -f /var/palm/ls2/roles/pub/${SID}.json
 # Remove the upstart script
 rm -f /var/palm/event.d/${SID}
 
-# Install the service executable
+# Install the service executable and libraries
 mkdir -p /var/usr/sbin/
 install -m 755 $APPS/usr/palm/applications/${PID}/bin/${BIN} /var/usr/sbin/${SID}
+mkdir -p /var/usr/lib/${PID}
+install -m 755 $APPS/usr/palm/applications/${PID}/bin/lib* /var/usr/lib/${PID}/
 
 # Install the dbus service
 mkdir -p /var/palm/system-services

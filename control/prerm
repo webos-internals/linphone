@@ -9,6 +9,7 @@ APPS=/media/cryptofs/apps
 
 # Remove the service executable
 rm -f /var/usr/sbin/${SID}
+rm -rf /var/usr/lib/${PID}
 
 # Remove the dbus service
 rm -f /var/palm/system-services/${SID}.service
