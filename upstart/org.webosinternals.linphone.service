@@ -2,6 +2,9 @@ description "LinPhone Service"
 
 start on stopped finish
 
-exec /var/usr/sbin/org.webosinternals.linphone.service
+script
+  export LD_LIBRARY_PATH=/var/usr/lib/org.webosinternals.linphone
+  exec /var/usr/sbin/org.webosinternals.linphone.service
+end script
 
 respawn
