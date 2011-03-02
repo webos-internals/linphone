@@ -1,7 +1,7 @@
 /*
  ===============================================================================
- Copyright (C) 2010 WebOS Internals <support@webos-internals.org>
  Copyright (C) 2011 Thibaud Gaillard <thibaud.gaillard@gmail.com>
+ Copyright (C) 2011 WebOS Internals <support@webos-internals.org>
 
  This program is free software; you can redistribute it and/or modify it under
  the terms of the GNU General Public License as published by the Free Software
@@ -64,25 +64,33 @@ static char buffer[MAXBUFLEN];
 static char tmp_buffer[MAXBUFLEN];
 static char esc_buffer[MAXBUFLEN];
 
+//
+// Create dedicated buffers for the callback routines, they run asynchronously
+// from the service requests and we don't want to hit their buffers
+//
+static char buffer_cb[MAXBUFLEN];
+static char tmp_buffer_cb[MAXBUFLEN];
+static char esc_buffer_cb[MAXBUFLEN];
+
 
 //
 // Escape a string so that it can be used directly in a JSON response.
 // In general, this means escaping quotes, backslashes and control chars.
-// It uses the static esc_buffer, which must be twice as large as the
+// It uses a provided (static) buffer, which must be twice as large as the
 // largest string this routine can handle.
 //
-static char *json_escape_str (char *str)
+static char *json_escape_str (char *str, char *buffer)
 {
   const char *json_hex_chars = "0123456789abcdef";
 
   // Initialise the output buffer
-  strcpy (esc_buffer, "");
+  strcpy (buffer, "");
 
   // Check the constraints on the input string
-  if (strlen(str) > MAXBUFLEN) return (char *) esc_buffer;
+  if (strlen(str) > MAXBUFLEN) return (char *) buffer;
 
   // Initialise the pointers used to step through the input and output.
-  char *resultsPt = (char *) esc_buffer;
+  char *resultsPt = (char *) buffer;
   int pos = 0, start_offset = 0;
 
   // Traverse the input, copying to the output in the largest chunks
@@ -155,7 +163,7 @@ static char *json_escape_str (char *str)
   memcpy (resultsPt, "\0", 1);
 
   // and return a pointer to it.
-  return (char *) esc_buffer;
+  return (char *) buffer;
 }
 
 //
@@ -212,8 +220,8 @@ lc_cb_bye_received (LinphoneCore *lc, const char *from) {
 
   LSError lserror;
   LSErrorInit (&lserror);
-  sprintf (buffer, "{\"byeReceivedFrom\": \"%s\"}", json_escape_str (from));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "byeReceivedFrom", buffer, &lserror)) {
+  sprintf (buffer_cb, "{\"byeReceivedFrom\": \"%s\"}", json_escape_str (from, esc_buffer_cb));
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "byeReceivedFrom", buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -226,9 +234,7 @@ lc_cb_notify_received (LinphoneCore *lc, const char *from, const char *msg) {
   fprintf (stdout, "Notify type %s from %s\n", msg, from);
   if (!strcmp (msg,"refer")) {
     fprintf (stdout, "The distant SIP end point get the refer we can close the call\n");
-//?    lpc = 1; 
     linphone_core_terminate_call (lc, NULL);
-//?    lpc = 0;
   }
   fflush (stdout);
 }
@@ -240,8 +246,8 @@ lc_cb_display_status (LinphoneCore *lc, const char *something) {
 
   LSError lserror;
   LSErrorInit (&lserror);
-  sprintf (buffer, "{\"displayStatus\": \"%s\"}", json_escape_str (something));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayStatus", buffer, &lserror)) {
+  sprintf (buffer_cb, "{\"displayStatus\": \"%s\"}", json_escape_str (something, esc_buffer_cb));
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayStatus", buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -254,8 +260,8 @@ lc_cb_display_something (LinphoneCore *lc, const char *something) {
 
   LSError lserror;
   LSErrorInit (&lserror);
-  sprintf (buffer, "{\"displaySomething\": \"%s\"}", json_escape_str(something));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displaySomething", buffer, &lserror)) {
+  sprintf (buffer_cb, "{\"displaySomething\": \"%s\"}", json_escape_str(something, esc_buffer_cb));
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displaySomething", buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -268,8 +274,8 @@ lc_cb_display_warning (LinphoneCore *lc, const char *something) {
 
   LSError lserror;
   LSErrorInit(&lserror);
-  sprintf (buffer, "{\"displayWarning\": \"%s\"}", json_escape_str (something));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayWarning", buffer, &lserror)) {
+  sprintf (buffer_cb, "{\"displayWarning\": \"%s\"}", json_escape_str (something, esc_buffer_cb));
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayWarning", buffer_cb, &lserror)) {
     LSErrorPrint(&lserror, stderr);
     LSErrorFree(&lserror);
   }
@@ -293,14 +299,14 @@ ls_signal_general_state (unsigned *state, unsigned char *message) {
   LSError lserror;
   LSErrorInit (&lserror);
 
-  sprintf (buffer, "{\"generalState\": \"%s\", \"message\": \"%s\"}", state, (message ? json_escape_str (message) : ""));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "generalState", buffer, &lserror)) {
+  sprintf (buffer_cb, "{\"generalState\": \"%s\", \"message\": \"%s\"}", state, (message ? json_escape_str (message, esc_buffer_cb) : ""));
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "generalState", buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
 }
 
-// We don't need to initialize this variable since linphone does the job as soon as started...
+// We don't have to initialize this variable since linphone does the job as soon as started...
 static unsigned char general_state[64];
 
 static void
@@ -469,7 +475,7 @@ static void lc_iterate (int sigval) {
   // Never iterate the core if a function is currently accessing the core...
   if (lpc) return;
 
-  // Iterate the linphone core... (protected)!
+  // Iterate the linphone core... (protected against itself too)!
   lpc = 1;
   linphone_core_iterate (opm);
   lpc =0;
@@ -601,7 +607,7 @@ bool soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   dev = linphone_core_get_sound_devices (lc);
   lpc = 0;
   for (i=0; dev[i]!=NULL; i++) {
-    sprintf (tmp_buffer, "%s\"%i: %s\"", sep, i, json_escape_str (dev[i]));
+    sprintf (tmp_buffer, "%s\"%i: %s\"", sep, i, json_escape_str (dev[i], esc_buffer));
     strcat (buffer, tmp_buffer);
     sep = ", ";
   }
@@ -682,13 +688,13 @@ bool soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx, c
 
   strcpy (buffer, "{\"returnValue\": true");
 
-  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "ringer", json_escape_str (ringer));
+  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "ringer", json_escape_str (ringer, esc_buffer));
   strcat (buffer, tmp_buffer);
 
-  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "playback", json_escape_str (playback));
+  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "playback", json_escape_str (playback, esc_buffer));
   strcat (buffer, tmp_buffer);
 
-  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "capture", json_escape_str (capture));
+  sprintf (tmp_buffer, ", \"%s\": \"%s\"", "capture", json_escape_str (capture, esc_buffer));
   strcat (buffer, tmp_buffer);
 
   strcat (buffer, "}");
@@ -767,7 +773,9 @@ bool ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subco
 //
 bool signal_gstate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
+  lpc = 1;
   ls_signal_general_state (general_state, NULL);
+  lpc = 0;
 
   LSError lserror;
   LSErrorInit (&lserror);
@@ -896,7 +904,7 @@ bool status_method(LSHandle* lshandle, LSMessage *message, void *ctx) {
   lpc = 0;
 
   if (registered) {
-    sprintf (buffer, "{\"returnValue\": true, \"registered\": true, \"identity\":\"%s\", \"duration\": %i}", json_escape_str (identity), expires);
+    sprintf (buffer, "{\"returnValue\": true, \"registered\": true, \"identity\":\"%s\", \"duration\": %i}", json_escape_str (identity, esc_buffer), expires);
   } else {
     strcpy (buffer, "{\"returnValue\": true, \"registered\": false}");
   }
