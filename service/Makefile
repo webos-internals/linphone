@@ -74,6 +74,7 @@ build/%.depend: build/$(ARCH).aclocal
 	$(MAKE) -C $(WIDK_DIR) ARCH=$(ARCH) INC_DEPS=1 $(addprefix build_,$(DEPENDS))
 	touch $@
 
+.SECONDARY: build/$(ARCH).built
 build/%.built: build/$(ARCH).depend
 	rm -f $@
 	cd build/$*; $(SB2) $(MAKE) ARCH=$(ARCH)

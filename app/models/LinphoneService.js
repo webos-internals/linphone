@@ -85,6 +85,24 @@ var LinphoneService = {
     return request;
   },
 
+  firewall: function (policy, address, callback) {
+    QDLogger.log("LinphoneService#firewall: policy =", policy, "/ address =", address);
+    var request = new Mojo.Service.Request(this.lpsUri, {
+      method: "firewall",
+      parameters: {
+	"policy": policy,
+	"address": address
+      },
+      onSuccess: callback,
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#firewall failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
+    });
+    return request;
+  },
+
   call: function (number, callback) {
     QDLogger.log("LinphoneService#call: number =", number);
     var request = new Mojo.Service.Request(this.lpsUri, {

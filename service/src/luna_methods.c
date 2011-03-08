@@ -881,6 +881,67 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
 }
 
 //
+// Firewall...
+//
+static
+bool firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+  LSError lserror;
+  LSErrorInit (&lserror);
+
+  // Extract the arguments from the message
+  json_t *object  = json_parse_document (LSMessageGetPayload (message));
+  json_t *policy  = !object ? NULL : json_find_first_label (object, "policy");
+  json_t *address = !object ? NULL : json_find_first_label (object, "address");
+
+  // Check the arguments
+  if (   !policy
+      || (policy->child->type != JSON_STRING)
+      || (strcmp (policy->child->text, "none") && strcmp (policy->child->text, "nat") && strcmp (policy->child->text, "stun"))) {
+    if (!LSMessageReply (lshandle, message,
+			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing policy\"}",
+			 &lserror)) goto error;
+    return true;
+  }
+  if (strcmp (policy->child->text, "none") && (!address || (address->child->type != JSON_STRING))) {
+    if (!LSMessageReply (lshandle, message,
+			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing nat/stun address\"}",
+			 &lserror)) goto error;
+    return true;
+  }
+
+  lpc = 1;
+
+  // Either we provide the IP address of the NAT gateway...
+  if (!strcmp (policy->child->text, "nat")) {
+    linphone_core_set_nat_address (lc, address);
+    linphone_core_set_firewall_policy (lc ,LINPHONE_POLICY_USE_NAT_ADDRESS);
+  }
+  
+  // Or we provide the name of a STUN server that will find us out...
+  else if (!strcmp (policy->child->text, "stun")) {
+    linphone_core_set_stun_server (lc, address);
+    linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_USE_STUN);
+  }
+
+  // Or just say with have a direct connection to the internet!
+  else {
+    linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_NO_FIREWALL);
+  }
+  
+  lpc = 0;
+
+  // Return the results to webOS.
+  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
+
+  return true;
+ error:
+  LSErrorPrint (&lserror, stderr);
+  LSErrorFree (&lserror);
+ end:
+  return false;
+}
+
+//
 // Status...
 //
 static
@@ -927,20 +988,6 @@ static
 bool unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
-
-// FIXME: is there a need for this later? 
-//
-//  // Extract the arguments from the message
-//  json_t *object = json_parse_document (LSMessageGetPayload(message));
-//  json_t *sipurl = json_find_first_label (object, "proxy");
-//
-//  // Check the arguments
-//  if (!proxy || (proxy->child->type != JSON_STRING) || (strspn (proxy->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_CALL_PROXY*/) != strlen (proxy->child->text))) {
-//    if (!LSMessageReply (lshandle, message,
-//			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing proxy\"}",
-//			 &lserror)) goto error;
-//    return true;
-//  }
 
   LinphoneProxyConfig *cfg = NULL;
   lpc = 1;
@@ -1093,6 +1140,7 @@ LSMethod luna_methods[] = {
   { "soundcardUse",	soundcard_use_method  },
   { "ipv6",	        ipv6_method           },
   { "signalGState",     signal_gstate_method  },
+  { "firewall",		firewall_method	      },
   { "register",	        register_method       },
   { "unregister",       unregister_method     },
   { "call",	        call_method           },
