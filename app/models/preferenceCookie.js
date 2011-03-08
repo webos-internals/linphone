@@ -30,7 +30,13 @@ var preferenceCookie = {
     sipUpdated:  false,
     sipValid:    false,
 
-    sipUnregisterOnExit: true
+    sipUnregisterOnExit: true,
+
+    netFirewallPolicy: 'none',
+    netNatAdresss    : false,
+    netStunServer    : false,
+    netUpdated       : false,
+    netValid         : false,
   },
 
   load: function () {
@@ -68,7 +74,8 @@ var preferenceCookie = {
 	  }
 	}
       }
-      this.cookie.put (this.data);
+      // Make a (almost forever) persistent cookie rather than a session cookie (thank you Ben!)
+      this.cookie.put (this.data, new Date(2099, 12, 31));
     }
     catch (error) {
       QDLogger.error("preferenceCookie#save", error);

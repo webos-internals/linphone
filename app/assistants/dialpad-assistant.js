@@ -79,23 +79,50 @@ var DialpadAssistant = Class.create ({
   activate: function (args) {
     QDLogger.log ("DialpadAssistant#activate");
 
+    // Get control over the volume buttons
+    TelephonyCommands.lockVolumeKeys (true);
+
     this.prefs = preferenceCookie.load ();
-    QDLogger.log ("DialpadAssistant#activate: sipName     =",         this.prefs.sipName);
-    QDLogger.log ("DialpadAssistant#activate: sipPassword =",         this.prefs.sipPassword);
-    QDLogger.log ("DialpadAssistant#activate: sipDomain   =",         this.prefs.sipDomain);
-    QDLogger.log ("DialpadAssistant#activate: sipUseProxy =",         this.prefs.sipUseProxy);
-    QDLogger.log ("DialpadAssistant#activate: sipProxy    =",         this.prefs.sipProxy);
-    QDLogger.log ("DialpadAssistant#activate: sipUpdated  =",         this.prefs.sipUpdated);
-    QDLogger.log ("DialpadAssistant#activate: sipValid    =",         this.prefs.sipValid);
+    QDLogger.log ("DialpadAssistant#activate: sipName             =", this.prefs.sipName);
+    QDLogger.log ("DialpadAssistant#activate: sipPassword         =", this.prefs.sipPassword);
+    QDLogger.log ("DialpadAssistant#activate: sipDomain           =", this.prefs.sipDomain);
+    QDLogger.log ("DialpadAssistant#activate: sipUseProxy         =", this.prefs.sipUseProxy);
+    QDLogger.log ("DialpadAssistant#activate: sipProxy            =", this.prefs.sipProxy);
+    QDLogger.log ("DialpadAssistant#activate: sipUpdated          =", this.prefs.sipUpdated);
+    QDLogger.log ("DialpadAssistant#activate: sipValid            =", this.prefs.sipValid);
     QDLogger.log ("DialpadAssistant#activate: sipUnregisterOnExit =", this.prefs.sipUnregisterOnExit);
+
+    QDLogger.log ("DialpadAssistant#activate: netFirewallPolicy   =", this.prefs.netFirewallPolicy);
+    QDLogger.log ("DialpadAssistant#activate: netNatAddress       =", this.prefs.netNatAddress);
+    QDLogger.log ("DialpadAssistant#activate: netStunServer       =", this.prefs.netStunServer);
+    QDLogger.log ("DialpadAssistant#activate: netUpdated          =", this.prefs.netUpdated);
+    QDLogger.log ("DialpadAssistant#activate: netValid            =", this.prefs.netValid);
+
+    // Set firewall policy
+    if (   (   this.forceRegistration 
+	    || this.prefs.netUpdated
+	   )
+	&& this.prefs.netValid) {
+      QDLogger.log ("DialpadAssistant#activate: firewalling...", this.forceRegistration ? "(forced)" : "");
+      var address;
+      switch (this.prefs.netFirewallPolicy) {
+      case 'none': address = ""; break;
+      case 'nat':  address = this.prefs.netNatAddress; break;
+      case 'stun': address = this.prefs.netStunServer; break;
+      }      
+      LinphoneService.firewall (this.prefs.netFirewallPolicy, address);
+      preferenceCookie.save ("netUpdated", false);
+    }
 
     // Register if SIP parameters were updated
     if (   (   this.forceRegistration 
+	    || this.prefs.netUpdated
 	    || this.prefs.sipUpdated
 	   )
+	&& this.prefs.netValid
 	&& this.prefs.sipValid
 	&& LinphoneCallState.powerOK ()) {
-      QDLogger.log ("DialpadAssistant#activate: registering...");
+      QDLogger.log ("DialpadAssistant#activate: registering...", this.forceRegistration ? "(forced)" : "");
 
       this.forceRegistration = false;
       LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
@@ -109,6 +136,10 @@ var DialpadAssistant = Class.create ({
 
   deactivate: function () {
     QDLogger.log ( "DialpadAssistant#deactivate");
+
+    // Release control over the volume buttons
+    TelephonyCommands.lockVolumeKeys (false);
+
   },
 
   cleanup: function () {
@@ -186,10 +217,11 @@ var DialpadAssistant = Class.create ({
       this.buttonEmptyON (true);
     }
 
-    // Register if we can
+    // Register if we can (cancel any pending forced registration)
     if (LinphoneCallState.registerNONE () && this.prefs.sipValid) {
       QDLogger.log ("DialpadAssistant#handlePower: registering...");
       LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
+      this.forceRegistration = false;
     }
   },
 
@@ -204,18 +236,21 @@ var DialpadAssistant = Class.create ({
 			     )
 			 );
 
+    // Only do something if not in a valid registration state
     if (!LinphoneCallState.registerVALID ()) {
       QDLogger.log ("DialpadAssistant#handleRegister: !VALID");
       this.buttonEmptyON (true);
       
-      if (this.forceRegistration && this.prefs.sipValid) {
+      // And then, only if we missed the very first registration opportunity after initialize() because of the service powering-up
+      // Reason: we don't want to retry registration on every failed attempt, or this will go into a mad loop... (FIXME: provide a button to retry on user's will)
+      if (this.forceRegistration && this.prefs.sipValid && !LinphoneCallState.registerPENDING ()) {
 	QDLogger.log ("DialpadAssistant#handleRegister: registering... (forced)");
 	this.forceRegistration = false;
 	LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
       }
     }
     else if (!LinphoneCallState.callACTIVE ()) {
-      QDLogger.log ("DialpadAssistant#handleRegister: VALID and !callACTIVE");
+      QDLogger.log ("DialpadAssistant#handleRegister: VALID && !callACTIVE");
       this.buttonDialON (true);
     }
 

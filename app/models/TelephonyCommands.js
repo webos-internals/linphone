@@ -50,7 +50,7 @@ var TelephonyCommands = {
 	if (callback) callback(payload);
       },
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands::proxSet", "failure");
+	QDLogger.log( "TelephonyCommands#proxSet: failure (state =" + state + ")");
       }
     });
     return request;
@@ -68,7 +68,7 @@ var TelephonyCommands = {
 	if (callback) callback(payload);
       },
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands::displayDNAST", "failure");
+	QDLogger.log( "TelephonyCommands#displayDNAST: failure (enable =" + enable + ")");
       }
     });
     
@@ -109,7 +109,23 @@ var TelephonyCommands = {
 
   audioUri: "palm://com.palm.audio/media",
   
-  subscribeAudioRouting: function(callback){
+  lockVolumeKeys: function (enable, callback) {
+    QDLogger.log( "TelephonyCommands#lockVolumeKeys:", enable);
+    var request = new Mojo.Service.Request (this.audioUri, {
+      method: "lockVolumeKeys",
+      parameters: {
+        subscribe: enable,
+	foregroundApp: true
+      },
+      onSuccess: callback,
+      onFailure: function() {
+	QDLogger.log( "TelephonyCommands#lockVolumeKeys: failure (enable =" + enable + ")");
+      }
+    });
+    return request;
+  },
+
+  subscribeAudioRouting: function (callback) {
 //?    Mojo.Controller.getAppController().assistant.audioEnabledProfiles = new Object();
     // Subscribe to audio notifications
     
@@ -141,10 +157,10 @@ var TelephonyCommands = {
         scenario: scenario
       },
       onSuccess: function () {
-	QDLogger.log( "TelephonyCommands::setAudioScenario", "success");
+	QDLogger.log( "TelephonyCommands#setAudioScenario", "success");
       },
       onFailure: function () {
-	QDLogger.log( "TelephonyCommands::setAudioScenario", "failure");
+	QDLogger.log( "TelephonyCommands#setAudioScenario", "failure");
       }
     });
 //  this.tempSaveRequest("setAudioScenario", request);
@@ -156,7 +172,7 @@ var TelephonyCommands = {
 //?   svcUri: "palm://com.palm.telephony",
 //? 
 //?   setPower: function (state, callback) {
-//?     QDLogger.log( "TelephonyCommands::setPower", state);
+//?     QDLogger.log( "TelephonyCommands#setPower", state);
 //?     var request = new Mojo.Service.Request(this.svcUri, {
 //?       method: "powerSet",
 //?       parameters: {
@@ -177,7 +193,7 @@ var TelephonyCommands = {
 //?       },
 //?       onSuccess: callback,
 //?       onFailure: function() {
-//? 	QDLogger.log( "TelephonyCommands::getPower", "failure");
+//? 	QDLogger.log( "TelephonyCommands#getPower", "failure");
 //?       }
 //?     });
 //? //?    this.saveRequest(request);
@@ -192,7 +208,7 @@ var TelephonyCommands = {
 //?       },
 //?       onSuccess: callback,
 //?       onFailure: function() {
-//? 	QDLogger.log( "TelephonyCommands::getNetworkStatus", "failure");
+//? 	QDLogger.log( "TelephonyCommands#getNetworkStatus", "failure");
 //?       }
 //?     });
 //? //?    this.saveRequest(request);
@@ -212,7 +228,7 @@ var TelephonyCommands = {
       },
       onSuccess: callback,
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands::powerStartActivity", "failure");
+	QDLogger.log( "TelephonyCommands#powerStartActivity", "failure");
       }
     });
   },
@@ -225,7 +241,7 @@ var TelephonyCommands = {
       },
       onSuccess: callback,
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands::powerEndActivity", "failure");
+	QDLogger.log( "TelephonyCommands#powerEndActivity", "failure");
       }
     });
   },
@@ -240,7 +256,7 @@ var TelephonyCommands = {
       parameters: {"category":"/com/palm/power","method":"chargerStatus"},
       onSuccess: callback,
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands::puckStatusSubscribe", "failure");
+	QDLogger.log( "TelephonyCommands#puckStatusSubscribe", "failure");
       }
     });
     
