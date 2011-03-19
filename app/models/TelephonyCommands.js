@@ -50,7 +50,7 @@ var TelephonyCommands = {
 	if (callback) callback(payload);
       },
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands#proxSet: failure (state =" + state + ")");
+	QDLogger.log( "TelephonyCommands#proxSet: failure (state=" + state + ")");
       }
     });
     return request;
@@ -68,7 +68,7 @@ var TelephonyCommands = {
 	if (callback) callback(payload);
       },
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands#displayDNAST: failure (enable =" + enable + ")");
+	QDLogger.log( "TelephonyCommands#displayDNAST: failure (enable=" + enable + ")");
       }
     });
     
@@ -119,7 +119,7 @@ var TelephonyCommands = {
       },
       onSuccess: callback,
       onFailure: function() {
-	QDLogger.log( "TelephonyCommands#lockVolumeKeys: failure (enable =" + enable + ")");
+	QDLogger.log( "TelephonyCommands#lockVolumeKeys: failure (enable=" + enable + ")");
       }
     });
     return request;

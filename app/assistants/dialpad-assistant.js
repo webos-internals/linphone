@@ -28,6 +28,12 @@ var DialpadAssistant = Class.create ({
     this.inputNecessaryButtonsVisible = true;
 
     this.deviceInfo = Mojo.Environment.DeviceInfo;
+
+    this.onBlur  = this.onBlur.bind (this);
+    this.onFocus = this.onFocus.bind (this);
+
+    this.stageController = Mojo.Controller.getAppController ().getStageController ("LinphoneApp");
+
   },
 
   setup: function () {
@@ -39,8 +45,17 @@ var DialpadAssistant = Class.create ({
     this.controller.get ("dialpad").addClassName ((screenHeight == 480) ? " pre" : " pixi");
     QDLogger.log ("DialpadAssistant#setup: dialpad.class =", this.controller.get ("dialpad").className);
 
+//?    TelephonyCommands.powerStartActivity ('linphone', this.POWER_MAX_ACTIVITY);
+    this.audioScenario   = TelephonyCommands.setAudioScenario ("media_back_speaker");
+    this.proximitySensor = TelephonyCommands.proxSet (false);
+
+
     // Setup menu
     this.controller.setupWidget (Mojo.Menu.appMenu, {omitDefaultItems: true}, this.menuModel);
+
+    // Specifically handle focus/blur events
+    this.controller.listen (this.stageController.document, Mojo.Event.deactivate, this.onBlur);
+    this.controller.listen (this.stageController.document, Mojo.Event.activate,   this.onFocus);
 
     // Bind to dialpad number buttons
     var that = this;
@@ -64,10 +79,6 @@ var DialpadAssistant = Class.create ({
     this.disableInputNecessaryButtons ();
 //?    this.controller.get ('phone-menu').addClassName ("fixed");
 
-//?    TelephonyCommands.powerStartActivity ('linphone', this.POWER_MAX_ACTIVITY);
-    TelephonyCommands.proxSet (false);
-    TelephonyCommands.setAudioScenario ("media_back_speaker");
-
     // Subscribe to the linphone GState signal and ask for a very first one (events are sent only once in event-driven schemes...)
     LinphoneEventListener.gstateSubscribe (this.gstateUpdate.bind (this));
     LinphoneService.signalGState ();
@@ -78,9 +89,6 @@ var DialpadAssistant = Class.create ({
 
   activate: function (args) {
     QDLogger.log ("DialpadAssistant#activate");
-
-    // Get control over the volume buttons
-    TelephonyCommands.lockVolumeKeys (true);
 
     this.prefs = preferenceCookie.load ();
     QDLogger.log ("DialpadAssistant#activate: sipName             =", this.prefs.sipName);
@@ -132,27 +140,48 @@ var DialpadAssistant = Class.create ({
     // keyboard and document listeners
 //    this.controller.listen (this.controller.sceneElement, Mojo.Event.keyup, this.handleKeyUp);
 //    this.controller.listen (this.controller.sceneElement, Mojo.Event.keydown, this.handleKeyDown);
+
+    // We gained focus, so perform what's needed...
+    this.onFocus ();
   },
 
   deactivate: function () {
     QDLogger.log ( "DialpadAssistant#deactivate");
-
-    // Release control over the volume buttons
-    TelephonyCommands.lockVolumeKeys (false);
 
   },
 
   cleanup: function () {
     QDLogger.log ( "DialpadAssistant#cleanup");
     TelephonyCommands.displayDNAST (false);
-    TelephonyCommands.proxSet (false);
     TelephonyCommands.setAudioScenario ("media_back_speaker");
+    this.proximitySensor.cancel ();
 //?    TelephonyCommands.powerEndActivity ('linphone');
 
     if (this.prefs.sipUnregisterOnExit) {
       LinphoneService.unregister ();
-      LinphoneEventListener.gstateUnsubscribe ();
     }
+    LinphoneEventListener.gstateUnsubscribe ();
+
+    // Remove events listeners
+    this.controller.stopListening (this.stageController.document, Mojo.Event.deactivate, this.onBlur);
+    this.controller.stopListening (this.stageController.document, Mojo.Event.activate,   this.onFocus);
+  },
+
+/* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
+
+  onFocus: function () {
+    QDLogger.log ( "AppAssistant#onFocus");
+
+    // Get control over the volume buttons
+    this.lockVolumeKeys = TelephonyCommands.lockVolumeKeys (true);
+  },
+
+  onBlur: function () {
+    QDLogger.log ( "AppAssistant#onBlur");
+
+    // Release control over the volume buttons
+    this.lockVolumeKeys.cancel ();
+
   },
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
@@ -320,8 +349,8 @@ var DialpadAssistant = Class.create ({
   buttonEmptyON: function (setAudioProx) {
     QDLogger.log ("DialpadAssistant#buttonEmptyON", setAudioProx);
     if (setAudioProx) {
-      TelephonyCommands.setAudioScenario ("media_back_speaker");
-      TelephonyCommands.proxSet (false);
+      this.audioScenario   = TelephonyCommands.setAudioScenario ("media_back_speaker");
+      this.proximitySensor.cancel ();
     }
     this.controller.get ('empty_button'     ).show ();
     this.controller.get ('dial_button'      ).hide ();
@@ -331,8 +360,8 @@ var DialpadAssistant = Class.create ({
   buttonDialON: function (setAudioProx) {
     QDLogger.log ("DialpadAssistant#buttonDialON", setAudioProx);
     if (setAudioProx) {
-      TelephonyCommands.setAudioScenario ("media_back_speaker");
-      TelephonyCommands.proxSet (false);
+      this.audioScenario   = TelephonyCommands.setAudioScenario ("media_back_speaker");
+      this.proximitySensor.cancel ();
     }
     this.controller.get ('empty_button'     ).hide ();
     this.controller.get ('dial_button'      ).show ();
@@ -342,8 +371,8 @@ var DialpadAssistant = Class.create ({
   buttonDisconnectON: function (setAudioProx) {
     QDLogger.log ("DialpadAssistant#buttonDisconnectON", setAudioProx);
     if (setAudioProx) {
-      TelephonyCommands.setAudioScenario ("media_front_speaker");
-      TelephonyCommands.proxSet (true);
+       this.audioScenario   = TelephonyCommands.setAudioScenario ("media_front_speaker");
+       this.proximitySensor = TelephonyCommands.proxSet (true);
     }
     this.controller.get ('empty_button'     ).hide ();
     this.controller.get ('dial_button'      ).hide ();

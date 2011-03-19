@@ -2,7 +2,10 @@ function AppAssistant (appController) {
   QDLogger.log ("AppAssistant");
   this.appController = appController;
   this.hidden = false; // todo see [PIX-10371]
+
 }
+
+/* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
 AppAssistant.prototype.stageName         = "LinphoneApp";
 AppAssistant.prototype.dialpadScene      = "dialpad";
