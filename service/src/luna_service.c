@@ -24,6 +24,12 @@
 #include "luna_service.h"
 #include "luna_methods.h"
 
+char luna_service_name[MAXBUFLEN];
+
+LSPalmService	*serviceHandle;
+LSHandle	*pub_serviceHandle;
+LSHandle	*prv_serviceHandle;
+
 GMainLoop *loop = NULL;
 
 bool luna_service_initialize (const char *dbusAddress) {
@@ -32,6 +38,8 @@ bool luna_service_initialize (const char *dbusAddress) {
 
   LSError lserror;
   LSErrorInit (&lserror);
+
+  strcpy (luna_service_name, dbusAddress);
 
   loop = g_main_loop_new (NULL, FALSE);
   if (loop == NULL)

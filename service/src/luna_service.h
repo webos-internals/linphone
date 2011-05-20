@@ -25,9 +25,11 @@
 
 #include <lunaservice.h>
 
-LSPalmService	*serviceHandle;
-LSHandle	*pub_serviceHandle;
-LSHandle	*prv_serviceHandle;
+extern char 		luna_service_name[];
+
+extern LSPalmService	*serviceHandle;
+extern LSHandle		*pub_serviceHandle;
+extern LSHandle		*prv_serviceHandle;
 
 bool luna_service_initialize (const char *);
 void luna_service_start (void);

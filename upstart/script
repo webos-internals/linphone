@@ -1,10 +1,10 @@
-description "LinPhone Service"
+description "Linphone Service"
 
 start on stopped finish
 
 script
   export LD_LIBRARY_PATH=/var/usr/lib/org.webosinternals.linphone
-  exec /var/usr/sbin/org.webosinternals.linphone.service
+  exec /var/usr/sbin/org.webosinternals.linphone.service -N
 end script
 
 respawn
