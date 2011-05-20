@@ -155,7 +155,7 @@ var PreferencesAssistant = Class.create ({
     this.controller.listen (name,
 			    Mojo.Event.propertyChange,
 			    callback.bindAsEventListener (this, name, fieldlist));
-    for (i=0; i<fieldlist.length; i++) {
+    for (var i=0; i<fieldlist.length; i++) {
 //      QDLogger.log ("PreferencesAssistant#prefWidgetListSelectorField", name, '=', this.prefs[name], '/', i, fieldlist[i].value, fieldlist[i].field);
       if (fieldlist[i].field) {
 	if (this.prefs[name] == fieldlist[i].value) {
@@ -210,7 +210,7 @@ var PreferencesAssistant = Class.create ({
   prefSelectedFieldNET: function (event, property, fieldlist) {
     QDLogger.log ("PreferencesAssistant#prefSelectedFieldNET:", property, event.value);
     this.prefChangedNET (event, property);
-    for (i=0; i<fieldlist.length; i++) {
+    for (var i=0; i<fieldlist.length; i++) {
       if (fieldlist[i].field) {
 	if (event.value == fieldlist[i].value) {
 	  this.controller.get (fieldlist[i].field).show ();

@@ -2,8 +2,8 @@ var TelephonyCommands = {
 
   dtmfUri    : "palm://com.palm.audio/dtmf",
 
-  sendDTMF: function(tone, feedback){
-    var request = new Mojo.Service.Request(this.dtmfUri, {
+  sendDTMF: function (tone, feedback) {
+    var request = new Mojo.Service.Request (this.dtmfUri, {
       method: ("playDTMF"),
       parameters: ({
 	"id": tone,
@@ -14,8 +14,8 @@ var TelephonyCommands = {
     return request;
   },
   
-  startDTMF: function(tone, feedback){
-    var request = new Mojo.Service.Request(this.dtmfUri, {
+  startDTMF: function (tone, feedback) {
+    var request = new Mojo.Service.Request (this.dtmfUri, {
       method: ("playDTMF"),
       parameters: ({
 	"id": tone,
@@ -26,8 +26,8 @@ var TelephonyCommands = {
     return request;
   },
   
-  endDTMF: function(tone){
-    var request = new Mojo.Service.Request(this.dtmfUri, {
+  endDTMF: function (tone) {
+    var request = new Mojo.Service.Request (this.dtmfUri, {
       method: ("stopDTMF"),
       parameters: {}
     });
@@ -39,65 +39,65 @@ var TelephonyCommands = {
 
   displayUri : "palm://com.palm.display/control",
 
-  proxSet: function(state, callback) {
-    var request = new Mojo.Service.Request(this.displayUri, {
+  proxSet: function (enable, callback) {
+    var request = new Mojo.Service.Request (this.displayUri, {
       method: "setProperty",
       parameters: {
-	"proximityEnabled": state,
+	"proximityEnabled": enable,
 	"client": Mojo.appInfo.id,
       },
-      onSuccess: function(payload){
-	if (callback) callback(payload);
+      onSuccess: function (payload) {
+	if (callback) callback (payload);
       },
-      onFailure: function() {
-	QDLogger.log( "TelephonyCommands#proxSet: failure (state=" + state + ")");
+      onFailure: function () {
+	QDLogger.log ("TelephonyCommands#proxSet: failure (enable=" + enable + ")");
       }
     });
     return request;
   },
   
   // DNAST == Disable Notification Auto/And Screen Timeout???
-  displayDNAST: function(enable, callback) {
-    var request = new Mojo.Service.Request(this.displayUri, {
+  displayDNAST: function (enable, callback) {
+    var request = new Mojo.Service.Request (this.displayUri, {
       method: "setProperty",
       parameters: {
 	"requestBlock": enable,
 	"client": Mojo.appInfo.id,
       },
-      onSuccess: function(payload){
-	if (callback) callback(payload);
+      onSuccess: function (payload) {
+	if (callback) callback (payload);
       },
-      onFailure: function() {
-	QDLogger.log( "TelephonyCommands#displayDNAST: failure (enable=" + enable + ")");
+      onFailure: function () {
+	QDLogger.log ("TelephonyCommands#displayDNAST: failure (enable=" + enable + ")");
       }
     });
     
     return request;
   },
 
-  displayChangeBlockWithTimeout: function(callback, timeout) {
-    var req = this.displayDNAST(true, callback);
+  displayChangeBlockWithTimeout: function (callback, timeout) {
+    var req = this.displayDNAST (true, callback);
     if (req) {
-      tosec = timeout ? timeout : 60;
-      req = this.cancelRequestAfterTimeout(req, tosec * 1000);
+      var tosec = timeout ? timeout : 60;
+      req = this.cancelRequestAfterTimeout (req, tosec * 1000);
     }
     return req;
   },
   
-  cancelRequestAfterTimeout: function(request, timeout) {
+  cancelRequestAfterTimeout: function (request, timeout) {
     var r = {};
     if (request) {
       r.req = request;
-      r.cancel = function() {
+      r.cancel = function () {
 	if (this.req) {
-	  this.req.cancel();
-	  clearTimeout(r.timer);
+	  this.req.cancel ();
+	  clearTimeout (r.timer);
 	  delete this.req;
 	}
       }
       
-      r.timer = setTimeout(function() {
-	r.cancel();
+      r.timer = setTimeout (function () {
+	r.cancel ();
       }, timeout);
     }
 		
@@ -110,7 +110,7 @@ var TelephonyCommands = {
   audioUri: "palm://com.palm.audio/media",
   
   lockVolumeKeys: function (enable, callback) {
-    QDLogger.log( "TelephonyCommands#lockVolumeKeys:", enable);
+    QDLogger.log ("TelephonyCommands#lockVolumeKeys:", enable);
     var request = new Mojo.Service.Request (this.audioUri, {
       method: "lockVolumeKeys",
       parameters: {
@@ -118,15 +118,15 @@ var TelephonyCommands = {
 	foregroundApp: true
       },
       onSuccess: callback,
-      onFailure: function() {
-	QDLogger.log( "TelephonyCommands#lockVolumeKeys: failure (enable=" + enable + ")");
+      onFailure: function () {
+	QDLogger.log ("TelephonyCommands#lockVolumeKeys: failure (enable=" + enable + ")");
       }
     });
     return request;
   },
 
   subscribeAudioRouting: function (callback) {
-//?    Mojo.Controller.getAppController().assistant.audioEnabledProfiles = new Object();
+//?    Mojo.Controller.getAppController ().assistant.audioEnabledProfiles = new Object ();
     // Subscribe to audio notifications
     
     var request = new Mojo.Service.Request (this.audioUri, {
@@ -136,7 +136,7 @@ var TelephonyCommands = {
       },
       onSuccess: callback
     });
-//?  this.tempSaveRequest("subscribeAudioRoutingStatus", request);
+//?  this.tempSaveRequest ("subscribeAudioRoutingStatus", request);
     
     // Get the list of available audio scenarios now
     request = new Mojo.Service.Request (this.audioUri, {
@@ -146,7 +146,7 @@ var TelephonyCommands = {
       },
       onSuccess: callback
     });
-//?  this.tempSaveRequest("subscribeAudioRoutingList", request);
+//?  this.tempSaveRequest ("subscribeAudioRoutingList", request);
     return request;
   },
     
@@ -157,13 +157,13 @@ var TelephonyCommands = {
         scenario: scenario
       },
       onSuccess: function () {
-	QDLogger.log( "TelephonyCommands#setAudioScenario", "success");
+	QDLogger.log ("TelephonyCommands#setAudioScenario", "success");
       },
       onFailure: function () {
-	QDLogger.log( "TelephonyCommands#setAudioScenario", "failure");
+	QDLogger.log ("TelephonyCommands#setAudioScenario", "failure");
       }
     });
-//  this.tempSaveRequest("setAudioScenario", request);
+//  this.tempSaveRequest ("setAudioScenario", request);
     return request;
   },
 
@@ -172,8 +172,8 @@ var TelephonyCommands = {
 //?   svcUri: "palm://com.palm.telephony",
 //? 
 //?   setPower: function (state, callback) {
-//?     QDLogger.log( "TelephonyCommands#setPower", state);
-//?     var request = new Mojo.Service.Request(this.svcUri, {
+//?     QDLogger.log ("TelephonyCommands#setPower", state);
+//?     var request = new Mojo.Service.Request (this.svcUri, {
 //?       method: "powerSet",
 //?       parameters: {
 //?         "state": (state ? "on" : "off")
@@ -181,37 +181,37 @@ var TelephonyCommands = {
 //?       onSuccess: callback,
 //?       onFailure: callback
 //?     });
-//? //?    this.tempSaveRequest("powerSet", request);
+//? //?    this.tempSaveRequest ("powerSet", request);
 //?     return request;
 //?   },
 //?   
 //?   getPower: function (subscribe, callback) {
-//?     var request = new Mojo.Service.Request(this.svcUri, {
+//?     var request = new Mojo.Service.Request (this.svcUri, {
 //?       method: "powerQuery",
 //?       parameters: {
 //? 	"subscribe": subscribe
 //?       },
 //?       onSuccess: callback,
-//?       onFailure: function() {
-//? 	QDLogger.log( "TelephonyCommands#getPower", "failure");
+//?       onFailure: function () {
+//? 	QDLogger.log ("TelephonyCommands#getPower", "failure");
 //?       }
 //?     });
-//? //?    this.saveRequest(request);
+//? //?    this.saveRequest (request);
 //?     return request;
 //?   },
 //?   
-//?   getNetworkStatus: function(subscribe, callback){
+//?   getNetworkStatus: function (subscribe, callback) {
 //?     var request = new Mojo.Service.Request (this.svcUri, {
 //?       method: "networkStatusQuery",
 //?       parameters: {
 //? 	"subscribe": subscribe
 //?       },
 //?       onSuccess: callback,
-//?       onFailure: function() {
-//? 	QDLogger.log( "TelephonyCommands#getNetworkStatus", "failure");
+//?       onFailure: function () {
+//? 	QDLogger.log ("TelephonyCommands#getNetworkStatus", "failure");
 //?       }
 //?     });
-//? //?    this.saveRequest(request);
+//? //?    this.saveRequest (request);
 //?     return request;
 //?   },
 
@@ -227,8 +227,8 @@ var TelephonyCommands = {
         duration_ms: duration
       },
       onSuccess: callback,
-      onFailure: function() {
-	QDLogger.log( "TelephonyCommands#powerStartActivity", "failure");
+      onFailure: function () {
+	QDLogger.log ("TelephonyCommands#powerStartActivity", "failure");
       }
     });
   },
@@ -240,8 +240,8 @@ var TelephonyCommands = {
         id: Mojo.appInfo.id, //id,
       },
       onSuccess: callback,
-      onFailure: function() {
-	QDLogger.log( "TelephonyCommands#powerEndActivity", "failure");
+      onFailure: function () {
+	QDLogger.log ("TelephonyCommands#powerEndActivity", "failure");
       }
     });
   },
@@ -250,13 +250,13 @@ var TelephonyCommands = {
 
   signalUri: "palm://com.palm.bus/signal",
 
-  puckStatusSubscribe: function(callback) {
+  puckStatusSubscribe: function (callback) {
     var request = new Mojo.Service.Request (this.signalUri, {
       method: "addmatch",
       parameters: {"category":"/com/palm/power","method":"chargerStatus"},
       onSuccess: callback,
-      onFailure: function() {
-	QDLogger.log( "TelephonyCommands#puckStatusSubscribe", "failure");
+      onFailure: function () {
+	QDLogger.log ("TelephonyCommands#puckStatusSubscribe", "failure");
       }
     });
     

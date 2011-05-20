@@ -33,10 +33,10 @@ var preferenceCookie = {
     sipUnregisterOnExit: true,
 
     netFirewallPolicy: 'none',
-    netNatAdresss    : false,
+    netNatAdress     : false,
     netStunServer    : false,
     netUpdated       : false,
-    netValid         : false,
+    netValid         : true,
   },
 
   load: function () {
@@ -47,7 +47,7 @@ var preferenceCookie = {
       var data = this.cookie.get ();
       if (data) {
 //	QDLogger.log ("preferenceCookie#load: from COOKIE");
-	for (i in data) {
+	for (var i in data) {
 	  this.data[i] = data[i];
 	}
       }
@@ -69,7 +69,7 @@ var preferenceCookie = {
 	  this.data[data] = value;
 //	  QDLogger.log("preferenceCookie#save:", data," =", value);
 	} else {
-	  for (i in data) {
+	  for (var i in data) {
 	    this.data[i] = data[i];
 	  }
 	}

@@ -26,6 +26,7 @@ var LinphoneEventListener = {
   gstateHandler : null,
 
   gstateSubscribe: function (callback) {
+    QDLogger.log ( "LinphoneEventListener#gstateSubscribe");
     // Subscribe to Battery Power Notifications
     this.gstateHandler = new Mojo.Service.Request (this.signalUri, {
       method: "addmatch",
@@ -43,6 +44,7 @@ var LinphoneEventListener = {
   },
 
   gstateUnsubscribe: function () {
+    QDLogger.log ( "LinphoneEventListener#gstateUnsubscribe: handler =", this.gstateHandler);
     if (this.gstateHandler) {
       this.gstateHandler.cancel ();
       delete this.gstateHandler;
@@ -93,6 +95,54 @@ var LinphoneEventListener = {
     if (this.dsomethingHandler) {
       this.dsomethingHandler.cancel ();
       delete this.dsomethingHandler;
+    }
+  },
+
+  /* Display Warning */
+  dwarningHandler : null,
+
+  dwarningSubscribe: function (callback) {
+    // Subscribe to Battery Power Notifications
+    this.dwarningHandler = new Mojo.Service.Request (this.signalUri, {
+      method: "addmatch",
+      parameters: {
+	category: "/linphone",
+	method:   "displayWarning"
+      },
+      onSuccess: callback,
+      onFailure: callback
+    });
+
+  },
+
+  dwarningUnsubscribe: function () {
+    if (this.dwarningHandler) {
+      this.dwarningHandler.cancel ();
+      delete this.dwarningHandler;
+    }
+  },
+
+  /* Bye Received From */
+  byerecfromHandler : null,
+
+  byerecfromSubscribe: function (callback) {
+    // Subscribe to Battery Power Notifications
+    this.byerecfromHandler = new Mojo.Service.Request (this.signalUri, {
+      method: "addmatch",
+      parameters: {
+	category: "/linphone",
+	method:   "byeReceivedFrom"
+      },
+      onSuccess: callback,
+      onFailure: callback
+    });
+
+  },
+
+  byerecfromUnsubscribe: function () {
+    if (this.byerecfromHandler) {
+      this.byerecfromHandler.cancel ();
+      delete this.byerecfromHandler;
     }
   },
 

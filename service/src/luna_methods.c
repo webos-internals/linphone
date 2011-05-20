@@ -5,7 +5,7 @@
 
  This program is free software; you can redistribute it and/or modify it under
  the terms of the GNU General Public License as published by the Free Software
- Foundation; either version 2 of the License, or (at your option) any later 
+ Foundation; either version 2 of the License, or (at your option) any later
  version.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
@@ -39,7 +39,7 @@
 #define CHARLIST_GROUP   "()<>[]{}"
 
 #define CHARLIST_PRINT   CHARLIST_ALPHA  CHARLIST_NUMERIC CHARLIST_QUOTE \
-                         CHARLIST_SYMBOL CHARLIST_PUNCT   CHARLIST_GROUP  
+                         CHARLIST_SYMBOL CHARLIST_PUNCT   CHARLIST_GROUP
 
 //#define ALLOWED_CHARS_SIP_IDENTITY CHARLIST_ALPHA CHARLIST_NUMERIC "._-:@"
 //#define ALLOWED_CHARS_SIP_PASSWORD CHARLIST_PRINT
@@ -50,8 +50,14 @@
 
 #define API_VERSION "1"
 
-#define LPS_URI "palm://" LUNA_SERVICE_NAME "/linphone/"
-#define pxx_serviceHandle pub_serviceHandle
+static int is_com_palm;
+#define pxx_serviceHandle (is_com_palm ? prv_serviceHandle : pub_serviceHandle)
+
+static char lps_uri_byeReceivedFrom [MAXBUFLEN];
+static char lps_uri_displayStatus   [MAXBUFLEN];
+static char lps_uri_displaySomething[MAXBUFLEN];
+static char lps_uri_displayWarning  [MAXBUFLEN];
+static char lps_uri_generalState    [MAXBUFLEN];
 
 // We'll need to remove the "static" directive in front of liblinphone_version@linphone/coreapi/linphonecore.c:39
 // extern char *liblinphone_version;
@@ -79,7 +85,7 @@ static char esc_buffer_cb[MAXBUFLEN];
 // It uses a provided (static) buffer, which must be twice as large as the
 // largest string this routine can handle.
 //
-static char *json_escape_str (char *str, char *buffer)
+static char *json_escape_str (const char *str, char *buffer)
 {
   const char *json_hex_chars = "0123456789abcdef";
 
@@ -113,14 +119,14 @@ static char *json_escape_str (char *str, char *buffer)
 	memcpy(resultsPt, str + start_offset, pos - start_offset);
 	resultsPt += pos - start_offset;
       };
-      
+
       // Escape the character
-      if      (c == '\b') {memcpy(resultsPt, "\\b",  2); resultsPt += 2;} 
-      else if (c == '\n') {memcpy(resultsPt, "\\n",  2); resultsPt += 2;} 
-      else if (c == '\r') {memcpy(resultsPt, "\\r",  2); resultsPt += 2;} 
-      else if (c == '\t') {memcpy(resultsPt, "\\t",  2); resultsPt += 2;} 
-      else if (c == '"')  {memcpy(resultsPt, "\\\"", 2); resultsPt += 2;} 
-      else if (c == '\\') {memcpy(resultsPt, "\\\\", 2); resultsPt += 2;} 
+      if      (c == '\b') {memcpy(resultsPt, "\\b",  2); resultsPt += 2;}
+      else if (c == '\n') {memcpy(resultsPt, "\\n",  2); resultsPt += 2;}
+      else if (c == '\r') {memcpy(resultsPt, "\\r",  2); resultsPt += 2;}
+      else if (c == '\t') {memcpy(resultsPt, "\\t",  2); resultsPt += 2;}
+      else if (c == '"')  {memcpy(resultsPt, "\\\"", 2); resultsPt += 2;}
+      else if (c == '\\') {memcpy(resultsPt, "\\\\", 2); resultsPt += 2;}
 
       // Reset the start of the next chunk
       start_offset = ++pos;
@@ -128,7 +134,7 @@ static char *json_escape_str (char *str, char *buffer)
     }
 
     default:
-      
+
       // Check for "special" characters
       if ((c < ' ') || (c > 127)) {
 
@@ -157,7 +163,7 @@ static char *json_escape_str (char *str, char *buffer)
   if (pos - start_offset > 0) {
     memcpy (resultsPt, str + start_offset, pos - start_offset);
     resultsPt += pos - start_offset;
-  } 
+  }
 
   // Terminate the output buffer ...
   memcpy (resultsPt, "\0", 1);
@@ -221,7 +227,7 @@ lc_cb_bye_received (LinphoneCore *lc, const char *from) {
   LSError lserror;
   LSErrorInit (&lserror);
   sprintf (buffer_cb, "{\"byeReceivedFrom\": \"%s\"}", json_escape_str (from, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "byeReceivedFrom", buffer_cb, &lserror)) {
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_byeReceivedFrom, buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -247,7 +253,7 @@ lc_cb_display_status (LinphoneCore *lc, const char *something) {
   LSError lserror;
   LSErrorInit (&lserror);
   sprintf (buffer_cb, "{\"displayStatus\": \"%s\"}", json_escape_str (something, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayStatus", buffer_cb, &lserror)) {
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_displayStatus, buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -261,7 +267,7 @@ lc_cb_display_something (LinphoneCore *lc, const char *something) {
   LSError lserror;
   LSErrorInit (&lserror);
   sprintf (buffer_cb, "{\"displaySomething\": \"%s\"}", json_escape_str(something, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displaySomething", buffer_cb, &lserror)) {
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_displaySomething, buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -275,7 +281,7 @@ lc_cb_display_warning (LinphoneCore *lc, const char *something) {
   LSError lserror;
   LSErrorInit(&lserror);
   sprintf (buffer_cb, "{\"displayWarning\": \"%s\"}", json_escape_str (something, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "displayWarning", buffer_cb, &lserror)) {
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_displayWarning, buffer_cb, &lserror)) {
     LSErrorPrint(&lserror, stderr);
     LSErrorFree(&lserror);
   }
@@ -295,12 +301,12 @@ lc_cb_text_received(LinphoneCore *lc, LinphoneChatRoom *cr, const char *from, co
 }
 
 static void
-ls_signal_general_state (unsigned *state, unsigned char *message) {
+ls_signal_general_state (const char *state, const char *message) {
   LSError lserror;
   LSErrorInit (&lserror);
 
   sprintf (buffer_cb, "{\"generalState\": \"%s\", \"message\": \"%s\"}", state, (message ? json_escape_str (message, esc_buffer_cb) : ""));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, LPS_URI "generalState", buffer_cb, &lserror)) {
+  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_generalState, buffer_cb, &lserror)) {
     LSErrorPrint (&lserror, stderr);
     LSErrorFree (&lserror);
   }
@@ -365,14 +371,14 @@ lc_cb_dtmf_received (LinphoneCore *lc, int dtmf) {
 static void
 lc_cb_prompt_for_auth (LinphoneCore *lc, const char *realm, const char *username) {
   LinphoneAuthInfo *pending_auth;
-    
+
   if ( auth_stack.nitems+1 > MAX_PENDING_AUTH ) {
-    fprintf (stdout, "Can't accept another authentication request.\n" 
+    fprintf (stdout, "Can't accept another authentication request.\n"
 	             "Consider incrementing MAX_PENDING_AUTH macro.\n");
     fflush (stdout);
     return;
   }
-    
+
   pending_auth = linphone_auth_info_new (username, NULL, NULL, NULL, realm);
   auth_stack.elem[auth_stack.nitems++] = pending_auth;
 }
@@ -380,7 +386,7 @@ lc_cb_prompt_for_auth (LinphoneCore *lc, const char *realm, const char *username
 // void linphonec_set_caller (const char *caller){
 //   snprintf (caller_name,sizeof(caller_name)-1, "%s", caller);
 // }
-// 
+//
 // static void
 // lc_cb_inv_received (LinphoneCore *lc, const char *from) {
 //   linphonec_set_caller (from);
@@ -388,7 +394,7 @@ lc_cb_prompt_for_auth (LinphoneCore *lc, const char *realm, const char *username
 //     answer_call = TRUE;
 //   }
 // }
-// 
+//
 // static void
 // lc_cb_notify_presence_received (LinphoneCore *lc,LinphoneFriend *fid) {
 //   char *tmp = linphone_address_as_string (linphone_friend_get_address (fid));
@@ -396,7 +402,7 @@ lc_cb_prompt_for_auth (LinphoneCore *lc, const char *realm, const char *username
 //   ms_free (tmp);
 //   // todo: update Friend list state (unimplemented)
 // }
-// 
+//
 // static void
 // lc_cb_new_unknown_subscriber (LinphoneCore *lc, LinphoneFriend *lf, const char *url) {
 //   printf ("Friend %s requested subscription "
@@ -412,8 +418,8 @@ lc_cb_show (LinphoneCore *lc) {
 }
 
 static void
-lc_cb_notify_presence_received (LinphoneCore *lc, const char *from, const char *msg) {
-  fprintf (stdout, "Received presence notification from \"%s\": \"%s\"\n", from, msg ? msg : "");
+lc_cb_notify_presence_received (LinphoneCore *lc, LinphoneFriend *lf) {
+  fprintf (stdout, "Received presence notification from \"%s\"\n", "??");
   fflush (stdout);
 }
 
@@ -469,7 +475,8 @@ LinphoneCoreVTable lc_cb_vtable = {
 };
 
 
-static void lc_iterate (int sigval) {
+static void
+lc_iterate (int sigval) {
   LinphoneCore *opm = lc;
 
   // Never iterate the core if a function is currently accessing the core...
@@ -482,7 +489,8 @@ static void lc_iterate (int sigval) {
 
 }
 
-static void lc_finish (int sigval) {
+static void
+lc_finish (int sigval) {
 
   // Terminate pending call, if any
   lpc = 1;
@@ -503,7 +511,8 @@ static void lc_finish (int sigval) {
 
 }
 
-static void lc_start () {
+static void
+lc_start () {
 
   fprintf (stdout, "Activating Linphone...\n");
 
@@ -529,7 +538,7 @@ static void lc_start () {
   // Initialize signal handlers
   signal (SIGTERM, lc_finish);
   signal (SIGINT,  lc_finish);
-  
+
   // Create & handle an alarm so we can iterate the linphone machinery
   lpc = 0;
   signal (SIGALRM, lc_iterate);
@@ -542,7 +551,8 @@ static void lc_start () {
 // A dummy method, useful for unimplemented functions or as a status function.
 // Called directly from webOS, and returns directly to webOS.
 //
-bool dummy_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+dummy_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -560,7 +570,8 @@ bool dummy_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 // Return the current API version of the service.
 // Called directly from webOS, and returns directly to webOS.
 //
-bool version_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+version_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -593,13 +604,13 @@ static bool passthrough (char *message) {
 //
 // Soundcard list...
 //
-static
-bool soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
   char *sep = "";
-  char **dev;
+  const char **dev;
   int  i;
 
   strcpy (buffer, "{\"returnValue\": true, \"devices\": [");
@@ -627,8 +638,8 @@ bool soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 // Soundcard use...
 //
-static
-bool soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+static bool
+soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -645,7 +656,7 @@ bool soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx, ch
   }
 
   int  i;
-  char **dev;
+  const char **dev;
 
   strcpy (buffer, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Unknown device\"}");
   lpc = 1;
@@ -675,15 +686,15 @@ bool soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx, ch
 //
 // Soundcard show...
 //
-static
-bool soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+static bool
+soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
   lpc = 1;
-  char *ringer   = linphone_core_get_ringer_device   (lc);
-  char *playback = linphone_core_get_playback_device (lc);
-  char *capture  = linphone_core_get_capture_device  (lc);
+  const char *ringer   = linphone_core_get_ringer_device   (lc);
+  const char *playback = linphone_core_get_playback_device (lc);
+  const char *capture  = linphone_core_get_capture_device  (lc);
   lpc = 0;
 
   strcpy (buffer, "{\"returnValue\": true");
@@ -713,8 +724,8 @@ bool soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx, c
 //
 // IPV6 enable/disable...
 //
-static
-bool ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+static bool
+ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -735,7 +746,7 @@ bool ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subco
     } else {
       strcat (buffer, "\"disabled\"}");
     }
-  
+
     // Return the results to webOS.
     if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
 
@@ -793,8 +804,8 @@ bool signal_gstate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 // Register...
 //
-static
-bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+static bool
+register_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -883,8 +894,8 @@ bool register_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
 //
 // Firewall...
 //
-static
-bool firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+static bool
+firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -913,13 +924,13 @@ bool firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
 
   // Either we provide the IP address of the NAT gateway...
   if (!strcmp (policy->child->text, "nat")) {
-    linphone_core_set_nat_address (lc, address);
+    linphone_core_set_nat_address (lc, address->child->text);
     linphone_core_set_firewall_policy (lc ,LINPHONE_POLICY_USE_NAT_ADDRESS);
   }
-  
+
   // Or we provide the name of a STUN server that will find us out...
   else if (!strcmp (policy->child->text, "stun")) {
-    linphone_core_set_stun_server (lc, address);
+    linphone_core_set_stun_server (lc, address->child->text);
     linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_USE_STUN);
   }
 
@@ -927,7 +938,7 @@ bool firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
   else {
     linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_NO_FIREWALL);
   }
-  
+
   lpc = 0;
 
   // Return the results to webOS.
@@ -944,22 +955,22 @@ bool firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *s
 //
 // Status...
 //
-static
-bool status_method(LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+status_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
-  LinphoneProxyConfig *cfg = NULL;
+  LinphoneProxyConfig **cfg = NULL;
   int   registered = 0;
-  char *identity = "";
+  const char *identity = "";
   int   expires  = 0;
 
   lpc = 1;
-  linphone_core_get_default_proxy (lc, &cfg);
-  if (cfg) {
-    if (registered = linphone_proxy_config_is_registered (cfg)) {
-      identity = linphone_proxy_config_get_identity (cfg);
-      expires  = linphone_proxy_config_get_expires (cfg);
+  linphone_core_get_default_proxy (lc, cfg);
+  if (*cfg) {
+    if (registered = linphone_proxy_config_is_registered (*cfg)) {
+      identity = linphone_proxy_config_get_identity (*cfg);
+      expires  = linphone_proxy_config_get_expires (*cfg);
     }
   }
   lpc = 0;
@@ -984,8 +995,8 @@ bool status_method(LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 // Unregister...
 //
-static
-bool unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -1012,8 +1023,8 @@ bool unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   return false;
 }
 
-static
-bool call_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subcommand) {
+static bool
+call_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -1058,8 +1069,8 @@ bool call_method (LSHandle* lshandle, LSMessage *message, void *ctx, char *subco
   return false;
 }
 
-static
-bool answer_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+answer_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -1086,8 +1097,8 @@ bool answer_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   return false;
 }
 
-static
-bool terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -1111,8 +1122,8 @@ bool terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   return false;
 }
 
-static
-bool quit_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+static bool
+quit_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   LSError lserror;
   LSErrorInit (&lserror);
 
@@ -1154,11 +1165,21 @@ LSSignal luna_signals[] = {
   { "byeReceivedFrom"  },
   { "displayStatus"    },
   { "displaySomething" },
+  { "displayWarning"   },
   { "generalState"     },
   { 0, 0}
 };
 
 bool luna_register_methods(LSPalmService *serviceHandle, LSError lserror) {
+
+  is_com_palm = (strncmp (luna_service_name, "com.palm", strlen ("com.palm")) == 0);
+
+  sprintf (lps_uri_byeReceivedFrom,  "palm://%s/linphone/byeReceivedFrom" , luna_service_name);
+  sprintf (lps_uri_displayStatus,    "palm://%s/linphone/displayStatus"   , luna_service_name);
+  sprintf (lps_uri_displaySomething, "palm://%s/linphone/displaySomething", luna_service_name);
+  sprintf (lps_uri_displayWarning,   "palm://%s/linphone/displayWarning",   luna_service_name);
+  sprintf (lps_uri_generalState,     "palm://%s/linphone/generalState"    , luna_service_name);
+
   lc_start ();
   return LSPalmServiceRegisterCategory(serviceHandle, "/",
 				       luna_methods, NULL,
