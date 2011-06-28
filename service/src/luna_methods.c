@@ -78,6 +78,160 @@ static char buffer_cb[MAXBUFLEN];
 static char tmp_buffer_cb[MAXBUFLEN];
 static char esc_buffer_cb[MAXBUFLEN];
 
+//
+// Linphone core passed variables
+//
+extern int   debug;
+extern char *config;
+extern char *Config;
+extern int   show_gstate;
+extern int   show_tick;
+
+//
+// Linphone core defines
+//
+#ifndef LC_CONFIG_FILE
+  #define LC_CONFIG_FILE NULL
+#endif
+#ifndef LC_CONFIG_FILE_DEFAULT
+  #define LC_CONFIG_FILE_DEFAULT NULL
+#endif
+#ifndef LC_ITERATE_TIME
+  #define LC_ITERATE_TIME 100000
+#endif
+#ifndef ONESEC_ITERATE_TIME
+  #define ONESEC_ITERATE_TIME 1000000
+#endif
+
+//
+// We definitely need a variable to protect the Linphone core & LunaService critical sections against unwanted interrupts (so the Linphone core can be safely iterated)
+// since neither the Linphone core nor Luna Service are re-entrant...
+static volatile int noint;
+#define INT_OFF  noint = 1
+#define INT_ON   noint = 0
+#define INT_SKIP noint
+
+
+//
+// Use a unique static linphone core pointer and associated start/iterate/finish routines
+//
+static LinphoneCore *lc;
+
+//
+// Authorization stack
+//
+#define MAX_PENDING_AUTH 8
+typedef struct {
+	LinphoneAuthInfo *elem[MAX_PENDING_AUTH];
+	int nitems;
+} LPC_AUTH_STACK;
+LPC_AUTH_STACK auth_stack;
+
+// Better prototype the callback table we later feed...
+
+//
+// We also need a few support variables so we can explicitly trace the running interrupt/iterate stuff
+//
+static int  lc_tick;
+static int  tick_skip;
+static char tick_text[] = ".123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+// Better prototype the necessary stuff so lc_start() knows about it...
+static void lc_iterate (int);
+static void lc_finish  (int);
+static LinphoneCoreVTable lc_cb_vtable;
+
+// Start the linphone core and associated repeating interrupt to iterate the core
+static void
+lc_start () {
+
+  fprintf (stdout, "Activating Linphone...\n");
+
+  if (show_tick) {
+    lc_tick = 0;
+    tick_skip = 0;
+  }
+
+  if (debug > 0) {
+    linphone_core_enable_logs (stdout);
+  } else {
+    linphone_core_disable_logs ();
+  }
+
+  //
+  // Initialize auth stack
+  //
+  auth_stack.nitems=0;
+
+  // Initialize linphone core
+  lc = linphone_core_new (&lc_cb_vtable, ((config && *config) ? config : NULL), ((Config && *Config) ? Config : NULL), NULL);
+
+  // Perform a minimum configuration
+  linphone_core_enable_ipv6 (lc, FALSE);
+  linphone_core_enable_video (lc, FALSE, FALSE);
+  linphone_core_enable_video_preview (lc, FALSE);
+
+  // Initialize signal handlers
+  signal (SIGTERM, lc_finish);
+  signal (SIGINT,  lc_finish);
+
+  // Create & handle an alarm so we can iterate the linphone machinery
+  INT_ON;
+  signal (SIGALRM, lc_iterate);
+  ualarm (LC_ITERATE_TIME, LC_ITERATE_TIME);
+
+}
+
+// Iterate the linphone core, possibly tracing the activity with a dot/alpha tick every second
+static void
+lc_iterate (int sigval) {
+
+  if (show_tick) {
+    if (lc_tick == 0) {
+      lc_tick = ONESEC_ITERATE_TIME / LC_ITERATE_TIME;
+      tick_skip = 0;
+      fputc (tick_text[tick_skip], stdout);
+      fflush (stdout);
+    }
+    lc_tick -= 1;
+  }
+
+  // Never iterate the core if a function (method?) is currently accessing the core...
+  if (INT_SKIP) {
+    tick_skip++;
+    return;
+  }
+
+  // Iterate the linphone core... (protected against itself too)!
+  INT_OFF;
+  linphone_core_iterate (lc);
+  INT_ON;
+
+}
+
+// Finish the linphone core (gracefully?) and exit
+static void
+lc_finish (int sigval) {
+
+  // Terminate pending call, if any
+  INT_OFF;
+  linphone_core_terminate_call (lc, NULL);
+  INT_ON;
+
+  // Wait a little, then stop the repeating alarm
+  usleep (10*LC_ITERATE_TIME);
+  ualarm (0, 0);
+
+  // Terminate the linphone core
+  INT_OFF;
+  linphone_core_destroy (lc);
+
+  fprintf (stdout, "Terminating Linphone...\n");
+
+  exit (sigval);
+
+}
+
 
 //
 // Escape a string so that it can be used directly in a JSON response.
@@ -173,68 +327,50 @@ static char *json_escape_str (const char *str, char *buffer)
 }
 
 //
-// Linphone core passed variables
-//
+// Wrap Luna Service signalling/answering into dedicated functions
 
-extern int   debug;
-extern char *config;
-extern char *Config;
-extern int   show_gstate;
+static void ls_signal (LSHandle *sh, const char *uri, const char *buf) {
+  LSError lserror;
+  LSErrorInit (&lserror);
+   if (!LSSignalSendNoTypecheck (sh, uri, buf, &lserror)) {
+    LSErrorPrint (&lserror, stderr);
+    LSErrorFree (&lserror);
+  }
+}
 
-//
-// Authorization stack
-//
+static bool ls_reply (LSHandle *sh, LSMessage *msg, const char *buf) {
+  LSError lserror;
+  bool retval;
 
-#define MAX_PENDING_AUTH 8
-typedef struct {
-	LinphoneAuthInfo *elem[MAX_PENDING_AUTH];
-	int nitems;
-} LPC_AUTH_STACK;
-LPC_AUTH_STACK auth_stack;
+  INT_OFF;
+  LSErrorInit (&lserror);
+  retval = LSMessageReply (sh, msg, buf, &lserror);
+  if (!retval) {
+    LSErrorPrint (&lserror, stderr);
+    LSErrorFree (&lserror);
+  }
+  INT_ON;
+  return retval;
 
-
-//
-// Linphone core defines
-//
-
-#ifndef LC_CONFIG_FILE
-  #define LC_CONFIG_FILE NULL
-#endif
-#ifndef LC_CONFIG_FILE_DEFAULT
-  #define LC_CONFIG_FILE_DEFAULT NULL
-#endif
-#ifndef LC_ITERATE_TIME
-  #define LC_ITERATE_TIME 100000
-#endif
-
-
-//
-// Use a unique static linphone core pointer and associated start/finish routines
-//
-static LinphoneCore *lc;
-static volatile int lpc;
+}
 
 
 //
 // Linphone core callback
 //
 
+// A call-back routine can only be called from the linphone core as a consequence of lc_iterate(),
+// so there is no need to "protect" the call to the linphone core again since already done!
+
 static void
 lc_cb_bye_received (LinphoneCore *lc, const char *from) {
   fprintf (stdout, "Bye received from %s\n", from);
   fflush (stdout);
 
-  LSError lserror;
-  LSErrorInit (&lserror);
   sprintf (buffer_cb, "{\"byeReceivedFrom\": \"%s\"}", json_escape_str (from, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_byeReceivedFrom, buffer_cb, &lserror)) {
-    LSErrorPrint (&lserror, stderr);
-    LSErrorFree (&lserror);
-  }
+  ls_signal (pxx_serviceHandle, lps_uri_byeReceivedFrom, buffer_cb);
 }
 
-// Since a call-back, this routine can only be called from the linphone core as a consequence of lc_iterate()...
-// So no need to "protect" the call to the linphone core!
 static void
 lc_cb_notify_received (LinphoneCore *lc, const char *from, const char *msg) {
   fprintf (stdout, "Notify type %s from %s\n", msg, from);
@@ -250,13 +386,8 @@ lc_cb_display_status (LinphoneCore *lc, const char *something) {
   fprintf (stdout, "%s\n", something);
   fflush (stdout);
 
-  LSError lserror;
-  LSErrorInit (&lserror);
   sprintf (buffer_cb, "{\"displayStatus\": \"%s\"}", json_escape_str (something, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_displayStatus, buffer_cb, &lserror)) {
-    LSErrorPrint (&lserror, stderr);
-    LSErrorFree (&lserror);
-  }
+  ls_signal (pxx_serviceHandle, lps_uri_displayStatus, buffer_cb);
 }
 
 static void
@@ -264,13 +395,8 @@ lc_cb_display_something (LinphoneCore *lc, const char *something) {
   fprintf (stdout, "%s\n", something);
   fflush (stdout);
 
-  LSError lserror;
-  LSErrorInit (&lserror);
   sprintf (buffer_cb, "{\"displaySomething\": \"%s\"}", json_escape_str(something, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_displaySomething, buffer_cb, &lserror)) {
-    LSErrorPrint (&lserror, stderr);
-    LSErrorFree (&lserror);
-  }
+  ls_signal (pxx_serviceHandle, lps_uri_displaySomething, buffer_cb);
 }
 
 static void
@@ -278,13 +404,8 @@ lc_cb_display_warning (LinphoneCore *lc, const char *something) {
   fprintf (stdout, "Warning: %s\n", something);
   fflush (stdout);
 
-  LSError lserror;
-  LSErrorInit(&lserror);
   sprintf (buffer_cb, "{\"displayWarning\": \"%s\"}", json_escape_str (something, esc_buffer_cb));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_displayWarning, buffer_cb, &lserror)) {
-    LSErrorPrint(&lserror, stderr);
-    LSErrorFree(&lserror);
-  }
+  ls_signal (pxx_serviceHandle, lps_uri_displayWarning, buffer_cb);
 }
 
 static void
@@ -302,14 +423,8 @@ lc_cb_text_received(LinphoneCore *lc, LinphoneChatRoom *cr, const char *from, co
 
 static void
 ls_signal_general_state (const char *state, const char *message) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
   sprintf (buffer_cb, "{\"generalState\": \"%s\", \"message\": \"%s\"}", state, (message ? json_escape_str (message, esc_buffer_cb) : ""));
-  if (!LSSignalSendNoTypecheck (pxx_serviceHandle, lps_uri_generalState, buffer_cb, &lserror)) {
-    LSErrorPrint (&lserror, stderr);
-    LSErrorFree (&lserror);
-  }
+  ls_signal (pxx_serviceHandle, lps_uri_generalState, buffer_cb);
 }
 
 // We don't have to initialize this variable since linphone does the job as soon as started...
@@ -451,7 +566,7 @@ static void
 stub () {
 }
 
-LinphoneCoreVTable lc_cb_vtable = {
+static LinphoneCoreVTable lc_cb_vtable = {
   /* Could be dummies if needed */
   .show                   = /* stub, // */ lc_cb_show,
   .notify_presence_recv   = /* stub, // */ lc_cb_notify_presence_received,
@@ -475,95 +590,13 @@ LinphoneCoreVTable lc_cb_vtable = {
 };
 
 
-static void
-lc_iterate (int sigval) {
-  LinphoneCore *opm = lc;
-
-  // Never iterate the core if a function is currently accessing the core...
-  if (lpc) return;
-
-  // Iterate the linphone core... (protected against itself too)!
-  lpc = 1;
-  linphone_core_iterate (opm);
-  lpc =0;
-
-}
-
-static void
-lc_finish (int sigval) {
-
-  // Terminate pending call, if any
-  lpc = 1;
-  linphone_core_terminate_call (lc, NULL);
-  lpc = 0;
-
-  // Wait a little, then stop the repeating alarm
-  usleep (11*LC_ITERATE_TIME);
-  ualarm (0, 0);
-
-  // Terminate linphone core
-  lpc = 1;
-  linphone_core_destroy (lc);
-
-  fprintf (stdout, "Terminating Linphone...\n");
-
-  exit (sigval);
-
-}
-
-static void
-lc_start () {
-
-  fprintf (stdout, "Activating Linphone...\n");
-
-  if (debug > 0) {
-    linphone_core_enable_logs (stdout);
-  } else {
-    linphone_core_disable_logs ();
-  }
-
-  //
-  // Initialize auth stack
-  //
-  auth_stack.nitems=0;
-
-  // Initialize linphone core
-  lc = linphone_core_new (&lc_cb_vtable, ((config && *config) ? config : NULL), ((Config && *Config) ? Config : NULL), NULL);
-
-  // Perform a minimum configuration
-  linphone_core_enable_ipv6 (lc, FALSE);
-  linphone_core_enable_video (lc, FALSE, FALSE);
-  linphone_core_enable_video_preview (lc, FALSE);
-
-  // Initialize signal handlers
-  signal (SIGTERM, lc_finish);
-  signal (SIGINT,  lc_finish);
-
-  // Create & handle an alarm so we can iterate the linphone machinery
-  lpc = 0;
-  signal (SIGALRM, lc_iterate);
-  ualarm (LC_ITERATE_TIME, LC_ITERATE_TIME);
-
-}
-
-
 //
 // A dummy method, useful for unimplemented functions or as a status function.
 // Called directly from webOS, and returns directly to webOS.
 //
 static bool
 dummy_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
 }
 
 //
@@ -572,17 +605,7 @@ dummy_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 version_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true, \"version\": \"" VERSION "\", \"apiVersion\": \"" API_VERSION "\", \"linphoneVersion\": \"" LINPHONE_VERSION "\"}", &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, "{\"returnValue\": true, \"version\": \"" VERSION "\", \"apiVersion\": \"" API_VERSION "\", \"linphoneVersion\": \"" LINPHONE_VERSION "\"}");
 }
 
 //
@@ -606,17 +629,14 @@ static bool passthrough (char *message) {
 //
 static bool
 soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
   char *sep = "";
   const char **dev;
   int  i;
 
   strcpy (buffer, "{\"returnValue\": true, \"devices\": [");
-  lpc = 1;
+  INT_OFF;
   dev = linphone_core_get_sound_devices (lc);
-  lpc = 0;
+  INT_ON;
   for (i=0; dev[i]!=NULL; i++) {
     sprintf (tmp_buffer, "%s\"%i: %s\"", sep, i, json_escape_str (dev[i], esc_buffer));
     strcat (buffer, tmp_buffer);
@@ -625,14 +645,7 @@ soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   strcat (buffer, "]}");
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, buffer);
 }
 
 //
@@ -640,26 +653,20 @@ soundcard_list_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
   // Extract the arguments from the message
   json_t *object = json_parse_document (LSMessageGetPayload (message));
   json_t *device = json_find_first_label (object, "device");
 
   // Check the arguments
   if (!device || (device->child->type != JSON_STRING) || (strspn (device->child->text, CHARLIST_PRINT) != strlen (device->child->text))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing device\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing device\"}");
   }
 
   int  i;
   const char **dev;
 
   strcpy (buffer, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Unknown device\"}");
-  lpc = 1;
+  INT_OFF;
   dev = linphone_core_get_sound_devices (lc);
   for (i=0; dev[i]!=NULL; i++) {
     if (strcmp (device->child->text, dev[i]) == 0) {
@@ -670,17 +677,10 @@ soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
       break;
     }
   }
-  lpc = 0;
+  INT_ON;
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, buffer);
 }
 
 //
@@ -688,14 +688,11 @@ soundcard_use_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
-  lpc = 1;
+  INT_OFF;
   const char *ringer   = linphone_core_get_ringer_device   (lc);
   const char *playback = linphone_core_get_playback_device (lc);
   const char *capture  = linphone_core_get_capture_device  (lc);
-  lpc = 0;
+  INT_ON;
 
   strcpy (buffer, "{\"returnValue\": true");
 
@@ -711,14 +708,7 @@ soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   strcat (buffer, "}");
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, buffer);
 }
 
 //
@@ -726,8 +716,6 @@ soundcard_show_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
 
   // Extract the arguments from the message
   json_t *object = json_parse_document (LSMessageGetPayload(message));
@@ -738,9 +726,9 @@ ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   // ... either none
   if (!enable) {
     strcpy (buffer, "{\"returnValue\": true, \"ipv6\": ");
-    lpc = 1;
+    INT_OFF;
     int ipv6_enabled = linphone_core_ipv6_enabled (lc);
-    lpc = 0;
+    INT_ON;
     if (ipv6_enabled) {
       strcat (buffer, "\"enabled\"}");
     } else {
@@ -748,35 +736,22 @@ ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
     }
 
     // Return the results to webOS.
-    if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
+    return ls_reply (lshandle, message, buffer);
 
   }
 
   // ... or not a boolean "enable"
   else if ((enable->child->type != JSON_TRUE) && (enable->child->type != JSON_FALSE)) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid enable type, boolean required\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid enable type, boolean required\"}");
   }
 
   // ... or an enable/disable request
   else {
-    lpc = 1;
+    INT_OFF;
     linphone_core_enable_ipv6 (lc, (enable->child->type == JSON_TRUE) ? TRUE : FALSE);
-    lpc = 0;
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": true}",
-			 &lserror)) goto error;
-    return true;
+    INT_ON;
+    return ls_reply (lshandle, message, "{\"returnValue\": true}");
   }
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
 }
 
 //
@@ -784,21 +759,11 @@ ipv6_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 bool signal_gstate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
-  lpc = 1;
+  INT_OFF;
   ls_signal_general_state (general_state, NULL);
-  lpc = 0;
+  INT_ON;
 
-  LSError lserror;
-  LSErrorInit (&lserror);
-
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
 }
 
 //
@@ -806,10 +771,6 @@ bool signal_gstate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 register_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
-  // Linphone stuff
   LinphoneProxyConfig *cfg;
   const MSList *elem;
 
@@ -821,26 +782,17 @@ register_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
   // Check the arguments
   if (!identity || (identity->child->type != JSON_STRING) || (strspn (identity->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_SIP_IDENTITY*/) != strlen (identity->child->text))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing identity\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing identity\"}");
   }
   if (!proxy || (proxy->child->type != JSON_STRING) || (strspn (proxy->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_SIP_PROXY*/) != strlen (proxy->child->text))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing proxy\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing proxy\"}");
   }
   if (!password || (password->child->type != JSON_STRING) || (strspn (proxy->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_SIP_PASSWORD*/) != strlen (proxy->child->text))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing password\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing password\"}");
   }
 
 
-  lpc = 1;
+  INT_OFF;
   // Perform the SIP registration
   // (excerpt from linphone/console/commands.c)
   //...
@@ -878,17 +830,10 @@ register_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
   linphone_core_set_default_proxy (lc, cfg);
   //...
-  lpc = 0;
+  INT_ON;
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
 }
 
 //
@@ -896,8 +841,6 @@ register_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
 
   // Extract the arguments from the message
   json_t *object  = json_parse_document (LSMessageGetPayload (message));
@@ -908,24 +851,18 @@ firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   if (   !policy
       || (policy->child->type != JSON_STRING)
       || (strcmp (policy->child->text, "none") && strcmp (policy->child->text, "nat") && strcmp (policy->child->text, "stun"))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing policy\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing policy\"}");
   }
   if (strcmp (policy->child->text, "none") && (!address || (address->child->type != JSON_STRING))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing nat/stun address\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing nat/stun address\"}");
   }
 
-  lpc = 1;
+  INT_OFF;
 
   // Either we provide the IP address of the NAT gateway...
   if (!strcmp (policy->child->text, "nat")) {
     linphone_core_set_nat_address (lc, address->child->text);
-    linphone_core_set_firewall_policy (lc ,LINPHONE_POLICY_USE_NAT_ADDRESS);
+    linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_USE_NAT_ADDRESS);
   }
 
   // Or we provide the name of a STUN server that will find us out...
@@ -939,17 +876,10 @@ firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
     linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_NO_FIREWALL);
   }
 
-  lpc = 0;
+  INT_ON;
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
 }
 
 //
@@ -957,15 +887,12 @@ firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 status_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
   LinphoneProxyConfig **cfg = NULL;
   int   registered = 0;
   const char *identity = "";
   int   expires  = 0;
 
-  lpc = 1;
+  INT_OFF;
   linphone_core_get_default_proxy (lc, cfg);
   if (*cfg) {
     if (registered = linphone_proxy_config_is_registered (*cfg)) {
@@ -973,7 +900,7 @@ status_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
       expires  = linphone_proxy_config_get_expires (*cfg);
     }
   }
-  lpc = 0;
+  INT_ON;
 
   if (registered) {
     sprintf (buffer, "{\"returnValue\": true, \"registered\": true, \"identity\":\"%s\", \"duration\": %i}", json_escape_str (identity, esc_buffer), expires);
@@ -982,14 +909,7 @@ status_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   }
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, buffer);
 }
 
 //
@@ -997,11 +917,9 @@ status_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 //
 static bool
 unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
-
   LinphoneProxyConfig *cfg = NULL;
-  lpc = 1;
+
+  INT_OFF;
   linphone_core_get_default_proxy (lc, &cfg);
   if (cfg && linphone_proxy_config_is_registered (cfg)) {
     linphone_proxy_config_edit (cfg);
@@ -1010,23 +928,14 @@ unregister_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   } else {
 //    linphonec_out ("unregistered\n");
   }
-  lpc = 0;
+  INT_ON;
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
 }
 
 static bool
 call_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
 
   // Extract the arguments from the message
   json_t *object = json_parse_document (LSMessageGetPayload(message));
@@ -1034,77 +943,45 @@ call_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
   // Check the arguments
   if (!sipurl || (sipurl->child->type != JSON_STRING) || (strspn (sipurl->child->text, CHARLIST_PRINT /*ALLOWED_CHARS_CALL_SIPURL*/) != strlen (sipurl->child->text))) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing sipurl\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing sipurl\"}");
   }
 
-  lpc = 1;
+  INT_OFF;
   LinphoneCall *call   = linphone_core_get_current_call (lc);
   int           invite = linphone_core_invite (lc, sipurl->child->text);
-  lpc = 0;
+  INT_ON;
   if (call != NULL) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Terminate current call first\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Terminate current call first\"}");
   } else if (invite == -1) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Error from linphone_core_invite\"}",
-			 &lserror)) goto error;
-    return true;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Error from linphone_core_invite\"}");
   } else {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": true}",
-			 &lserror)) goto error;
+    return ls_reply (lshandle, message, "{\"returnValue\": true}");
   }
 
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
 }
 
 static bool
 answer_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
 
-  lpc = 1;
+  INT_OFF;
   int answer = linphone_core_accept_call (lc, NULL);
-  lpc = 0;
+  INT_ON;
 
   if (answer == -1) {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Failed to accept incoming call\"}",
-			 &lserror)) goto error;
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Failed to accept incoming call\"}");
   }
   else  {
-    if (!LSMessageReply (lshandle, message,
-			 "{\"returnValue\": true}",
-			 &lserror)) goto error;
+    return ls_reply (lshandle, message, "{\"returnValue\": true}");
   }
 
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
 }
 
 static bool
 terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
 
-  lpc = 1;
+  INT_OFF;
   int terminate = linphone_core_terminate_call (lc, NULL);
-  lpc = 0;
+  INT_ON;
   if (terminate == -1) {
     strcpy(buffer, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"No active call\"}");
   } else {
@@ -1112,34 +989,19 @@ terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   }
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, buffer, &lserror)) goto error;
-
-  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  return false;
+  return ls_reply (lshandle, message, buffer);
 }
 
 static bool
 quit_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
-  LSError lserror;
-  LSErrorInit (&lserror);
 
   // Return the results to webOS.
-  if (!LSMessageReply (lshandle, message, "{\"returnValue\": true}", &lserror)) goto error;
+  ls_reply (lshandle, message, "{\"returnValue\": true}");
 
 
   // Exit (gracefuly?) anyway
   lc_finish (0);
-//  return true;
- error:
-  LSErrorPrint (&lserror, stderr);
-  LSErrorFree (&lserror);
- end:
-  lc_finish (0);
-//  return false;
+
 }
 
 
@@ -1171,18 +1033,26 @@ LSSignal luna_signals[] = {
 };
 
 bool luna_register_methods(LSPalmService *serviceHandle, LSError lserror) {
+  bool retval;
 
+  // We need to know if we are in the com.palm domain or not (use private DBUS then, or public one otherwise)
   is_com_palm = (strncmp (luna_service_name, "com.palm", strlen ("com.palm")) == 0);
 
+  // Pre-build the needed URI so we speed-up strings copies later on
   sprintf (lps_uri_byeReceivedFrom,  "palm://%s/linphone/byeReceivedFrom" , luna_service_name);
   sprintf (lps_uri_displayStatus,    "palm://%s/linphone/displayStatus"   , luna_service_name);
   sprintf (lps_uri_displaySomething, "palm://%s/linphone/displaySomething", luna_service_name);
-  sprintf (lps_uri_displayWarning,   "palm://%s/linphone/displayWarning",   luna_service_name);
+  sprintf (lps_uri_displayWarning,   "palm://%s/linphone/displayWarning"  , luna_service_name);
   sprintf (lps_uri_generalState,     "palm://%s/linphone/generalState"    , luna_service_name);
 
+  // Create (register?) the service and associated functions (methods)
+  retval = LSPalmServiceRegisterCategory(serviceHandle, "/",
+				         luna_methods, NULL,
+				         luna_signals, NULL,
+				         &lserror);
+
+  // Start the linphone iterating core, or nothing will just happen! ;-)
   lc_start ();
-  return LSPalmServiceRegisterCategory(serviceHandle, "/",
-				       luna_methods, NULL,
-				       luna_signals, NULL,
-				       &lserror);
+
+  return retval;
 }

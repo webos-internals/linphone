@@ -26,7 +26,7 @@ var LinphoneEventListener = {
   gstateHandler : null,
 
   gstateSubscribe: function (callback) {
-    QDLogger.log ( "LinphoneEventListener#gstateSubscribe");
+    QDLogger.log ("LinphoneEventListener#gstateSubscribe");
     // Subscribe to Battery Power Notifications
     this.gstateHandler = new Mojo.Service.Request (this.signalUri, {
       method: "addmatch",
@@ -44,7 +44,7 @@ var LinphoneEventListener = {
   },
 
   gstateUnsubscribe: function () {
-    QDLogger.log ( "LinphoneEventListener#gstateUnsubscribe: handler =", this.gstateHandler);
+    QDLogger.log ("LinphoneEventListener#gstateUnsubscribe: handler =", this.gstateHandler);
     if (this.gstateHandler) {
       this.gstateHandler.cancel ();
       delete this.gstateHandler;

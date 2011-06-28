@@ -1,3 +1,4 @@
 [D-BUS Service]
 Name=org.webosinternals.linphone.service
 Exec=/var/usr/sbin/org.webosinternals.linphone.service
+Type=dynamic

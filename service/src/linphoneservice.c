@@ -32,6 +32,7 @@ int  debug;
 char config[MAXBUFLEN];
 char Config[MAXBUFLEN];
 int  show_gstate;
+int  show_tick;
 char sname[MAXBUFLEN];
 int  self_name;
 char sName[MAXBUFLEN];
@@ -43,6 +44,7 @@ static struct option long_options[] = {
   { "config",	required_argument,	0, 'c' },
   { "Config",	required_argument,	0, 'C' },
   { "state",	no_argument,		0, 'S' },
+  { "tick",	no_argument,		0, 't' },
   { "name",	required_argument,	0, 'n' },
   { "Name",	no_argument,		0, 'N' },
   { 0, 0, 0, 0 }
@@ -97,6 +99,7 @@ void print_help (char *argv[]) {
 	  "  -S, --state\t\tshow general state messages (disabled by default)\n"
 	  "  -n, --name\t\tname the service NAME rather than the default \"%s\"\n"
 	  "  -N, --Name\t\tname the service after the executable name rather than the default \"%s\"...\n"
+	  "  -t, --tick\t\tprint a dot beat every second to confirm the iteration task is alive...\n"
 	  "  -V, --version\t\tprint version information and exit\n",
 	  basename (argv[0]) || "???",
 	  LUNA_SERVICE_NAME,
@@ -109,7 +112,7 @@ int getopts (int argc, char *argv[]) {
 
   while (1) {
     int option_index = 0;
-    c = getopt_long (argc, argv, "d:c:C:n:SNVh", long_options, &option_index);
+    c = getopt_long (argc, argv, "d:c:C:n:StNVh", long_options, &option_index);
     if (c == -1)
       break;
     switch (c) {
@@ -124,6 +127,9 @@ int getopts (int argc, char *argv[]) {
       break;
     case 'S':
       show_gstate = 1;
+      break;
+    case 't':
+      show_tick = 1;
       break;
     case 'n':
       strcpy (sname, optarg);
@@ -159,6 +165,7 @@ int main (int argc, char *argv[]) {
   config[0]   = 0;
   Config[0]   = 0;
   show_gstate = 0;
+  show_tick   = 0;
   sname[0]    = 0;
   self_name   = 0;
 
