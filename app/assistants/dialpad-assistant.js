@@ -13,6 +13,10 @@ var DialpadAssistant = Class.create ({
 	command: 'do-prefs'
       },
       {
+	label:   "Reset Service",
+	command: 'do-reset'
+      },
+      {
 	label:   "Help",
 	command: 'do-help'
       }
@@ -26,6 +30,7 @@ var DialpadAssistant = Class.create ({
 
     this.deviceInfo = Mojo.Environment.DeviceInfo;
     this.isEmulator = (this.deviceInfo.modelNameAscii.toLowerCase() === "device");
+    this.isWebOS2x  = (this.deviceInfo.platformVersionMajor == 2);
 
     this.dialString = "";
     this.inputNecessaryButtonsVisible = true;
@@ -84,6 +89,11 @@ var DialpadAssistant = Class.create ({
     LinphoneEventListener.gstateSubscribe (this.gstateUpdate.bind (this));
     LinphoneService.signalGState ();
 
+    // If we are running 2.x, then an upstart-assisted service restart is needed until we fix the (signal-deafness) issue on relaunch!
+    if (this.isWebOS2x) {
+      LinphoneService.quit ();
+    }
+
     // Say we must try to register
     this.forceRegistration = true;
   },
@@ -92,6 +102,9 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#activate");
 
     this.prefs = preferenceCookie.load ();
+
+    QDLogger.log ("DialpadAssistant#activate: svcResetOnStart     =", this.prefs.svcResetOnStart);
+
     QDLogger.log ("DialpadAssistant#activate: sipName             =", this.prefs.sipName);
     QDLogger.log ("DialpadAssistant#activate: sipPassword         =", this.prefs.sipPassword);
     QDLogger.log ("DialpadAssistant#activate: sipDomain           =", this.prefs.sipDomain);
@@ -106,6 +119,11 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#activate: netStunServer       =", this.prefs.netStunServer);
     QDLogger.log ("DialpadAssistant#activate: netUpdated          =", this.prefs.netUpdated);
     QDLogger.log ("DialpadAssistant#activate: netValid            =", this.prefs.netValid);
+
+    // Reset (restart) the service if asked to (FIXME: hidden in the HTML for now...)
+    if (this.prefs.svcResetOnStart) {
+      LinphoneService.quit ();
+    }
 
     // Set firewall policy
     if (   (   this.forceRegistration 
@@ -147,12 +165,12 @@ var DialpadAssistant = Class.create ({
   },
 
   deactivate: function () {
-    QDLogger.log ( "DialpadAssistant#deactivate");
+    QDLogger.log ("DialpadAssistant#deactivate");
 
   },
 
   cleanup: function () {
-    QDLogger.log ( "DialpadAssistant#cleanup");
+    QDLogger.log ("DialpadAssistant#cleanup");
     TelephonyCommands.displayDNAST (false);
     TelephonyCommands.setAudioScenario ("media_back_speaker");
     if (this.proximitySensor) {
@@ -173,14 +191,14 @@ var DialpadAssistant = Class.create ({
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
   onFocus: function () {
-    QDLogger.log ( "AppAssistant#onFocus");
+    QDLogger.log ("AppAssistant#onFocus");
 
     // Get control over the volume buttons
     this.lockVolumeKeys = TelephonyCommands.lockVolumeKeys (true);
   },
 
   onBlur: function () {
-    QDLogger.log ( "AppAssistant#onBlur");
+    QDLogger.log ("AppAssistant#onBlur");
 
     // Release control over the volume buttons
     this.lockVolumeKeys.cancel ();
@@ -434,18 +452,18 @@ var DialpadAssistant = Class.create ({
 
   /** DIALPAD BUTTONS **/
   numberClick: function (event, key) {
-    QDLogger.log ( "DialpadAssistant#numberclick", "key=", key);
+    QDLogger.log ("DialpadAssistant#numberclick", "key=", key);
 
     if (key) {
       TelephonyCommands.sendDTMF (key, true);
-      this.formatAndUpdateDialString (key,event);
+      this.formatAndUpdateDialString (key, event);
     }
   },
 
   dialClick: function (event) {
-    QDLogger.log ( "DialpadAssistant::dialClick", this.dialString);
+    QDLogger.log ("DialpadAssistant::dialClick", this.dialString);
 
-    QDLogger.log ( "DialpadAssistant::dialClick / powerState =", LinphoneCallState.powerState);
+    QDLogger.log ("DialpadAssistant::dialClick / powerState =", LinphoneCallState.powerState);
 
     // If registration was successful and non-empty dial number, engage dial and hide dial button
     if (LinphoneCallState.registerVALID () && (this.dialString.length > 0)) {
@@ -457,7 +475,7 @@ var DialpadAssistant = Class.create ({
   },
 
   disconnectClick: function (event) {
-    QDLogger.log ( "DialpadAssistant::disconnectClick", this.dialString);
+    QDLogger.log ("DialpadAssistant::disconnectClick", this.dialString);
 
     // If a call was active, terminate it and hide disconnect button
     if (LinphoneCallState.callACTIVE ()) {
@@ -467,7 +485,7 @@ var DialpadAssistant = Class.create ({
   },
 
   emptyClick: function (event) {
-    QDLogger.log ( "DialpadAssistant::emptyClick", this.dialString);
+    QDLogger.log ("DialpadAssistant::emptyClick", this.dialString);
   },
 
   clear: function (event) {
@@ -547,8 +565,8 @@ var DialpadAssistant = Class.create ({
     }
   },
 
-  formatAndUpdateDialString: function (keyIn,evt) {
-    QDLogger.log ( "DialpadAssistant#formatAndUpdateDialString", "key=", keyIn, "event=", evt);
+  formatAndUpdateDialString: function (keyIn, event) {
+    QDLogger.log ("DialpadAssistant#formatAndUpdateDialString", "key=", keyIn, "event=", event);
 
     this.clearSetDialString ();
 
@@ -664,7 +682,7 @@ var DialpadAssistant = Class.create ({
 
     if (this.inputNecessaryButtonsVisible) {
       this.inputNecessaryButtonsVisible = false;
-      QDLogger.log ( "DialpadAssistant::disableInputNecessaryButtons");
+      QDLogger.log ("DialpadAssistant::disableInputNecessaryButtons");
       if (this.controller.get ('contact_add_button')) {
 //		    this.controller.get ('contact_add_button').hide ();
 //		    this.controller.get ('voicemail_button'  ).show ();
@@ -686,7 +704,7 @@ var DialpadAssistant = Class.create ({
 
     if (!this.inputNecessaryButtonsVisible) {
       this.inputNecessaryButtonsVisible = true;
-      QDLogger.log ( "DialpadAssistant::enableInputNecessaryButtons");
+      QDLogger.log ("DialpadAssistant::enableInputNecessaryButtons");
 //	       this.controller.get ('voicemail_button').hide ();
 //	       this.controller.get ('call_log_button').hide ();
 
@@ -707,8 +725,14 @@ var DialpadAssistant = Class.create ({
     if (event.type == Mojo.Event.command) {
       switch (event.command) {
 
+      // Preferences are being handled in a new scene...
       case 'do-prefs':
 	this.controller.stageController.pushScene ('preferences');
+	break;
+
+	// Make service quit ... and restart thanks to the upstart daemon (hopefully a workaround for the 2.x lockup issue...)
+      case 'do-reset':
+	LinphoneService.quit ();
 	break;
 
 //      case 'do-help':

@@ -1,7 +1,7 @@
 {
   "role": {
      "exeName":"/var/usr/sbin/org.webosinternals.linphone.service",
-     "type": "regular",
+     "type": "dynamic",
      "allowedNames": ["org.webosinternals.linphone.service"]
   },
   "permissions": [

@@ -49,6 +49,8 @@ var PreferencesAssistant = Class.create ({
     // Fill-in preferences fields
     this.prefs = preferenceCookie.load ();
 
+    this.prefWidgetToggleButton ('svcResetOnStart', this.prefChanged); // FIXME: hidden in the HTML for now...
+
     this.prefWidgetTextField ('sipName',     this.prefChangedSIP);
     this.prefWidgetTextField ('sipPassword', this.prefChangedSIP);
     this.prefWidgetTextField ('sipDomain',   this.prefChangedSIP);
@@ -188,7 +190,7 @@ var PreferencesAssistant = Class.create ({
   },
 
   prefToggledFieldSIP: function (event, property, field) {
-    QDLogger.log ("PreferencesAssistant#prefToggledFielSIP:", property, event.value, field);
+    QDLogger.log ("PreferencesAssistant#prefToggledFieldSIP:", property, event.value, field);
     this.prefChangedSIP (event, property);
     if (event.value) {
       this.controller.get (field).show ();

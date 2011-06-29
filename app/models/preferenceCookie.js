@@ -23,6 +23,9 @@ var preferenceCookie = {
   // Public
 
   data: {
+
+    svcResetOnStart: false,
+
     sipName:     false,
     sipPassword: false,
     sipDomain:   false,
@@ -74,7 +77,7 @@ var preferenceCookie = {
 	  }
 	}
       }
-      // Make a (almost forever) persistent cookie rather than a session cookie (thank you Ben!)
+      // Make a(n almost forever) persistent cookie rather than a session cookie (thank you Ben!)
       this.cookie.put (this.data, new Date(2099, 12, 31));
     }
     catch (error) {
