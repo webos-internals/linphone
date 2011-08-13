@@ -72,6 +72,9 @@ var DialpadAssistant = Class.create ({
 //	 button.observe (Mojo.Event.hold, that.handleHeldKey.bindAsEventListener (that, key.charAt (2)));
      });
 
+    // Setup an event handler to catch the key pressed
+    this.controller.listen (this.controller.sceneElement, Mojo.Event.keypress, this.onKeyPress.bindAsEventListener(this));
+
     // Other dialpad area buttons
     this.controller.get ('delete_button'    ).observe (Mojo.Event.tap,  this.back.bindAsEventListener (this));
     this.controller.get ('delete_button'    ).observe (Mojo.Event.hold, this.clear.bindAsEventListener (this));
@@ -182,6 +185,9 @@ var DialpadAssistant = Class.create ({
       LinphoneService.unregister ();
     }
     LinphoneEventListener.gstateUnsubscribe ();
+
+    // 
+    this.controller.stopListening (this.controller.sceneElement,  Mojo.Event.keypress,   this.onKeyPress);
 
     // Remove events listeners
     this.controller.stopListening (this.stageController.document, Mojo.Event.deactivate, this.onBlur);
@@ -450,6 +456,20 @@ var DialpadAssistant = Class.create ({
 
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
+  onKeyPress: function (event) {
+    QDLogger.log ("DialpadAssistant#onKeyPress key=", event.originalEvent.charCode, '(' + String.fromCharCode (event.originalEvent.charCode) + ')');
+
+    var key = event.originalEvent.charCode;
+    if (key == 08) {         // Backspace
+      this.back (event)
+    } else if (key == 127) { // Delete
+      this.clear (event)
+    } else {                 // Let any other go through...
+      this.formatAndUpdateDialString (String.fromCharCode (key), event);
+    }
+
+  },
+
   /** DIALPAD BUTTONS **/
   numberClick: function (event, key) {
     QDLogger.log ("DialpadAssistant#numberclick", "key=", key);
@@ -630,35 +650,20 @@ var DialpadAssistant = Class.create ({
   },
 
   isValidDialKey: function (key) {
-    if (PlatformType.isGSM () == true) {
-      for (var i = 0; i < key.length; i++) {
-	if (!(   (   key[i] >= '0'
-	          && key[i] <= '9')
-	      || key[i] == '*'
-	      || key[i] == '#'
-	      || key[i] == 'w'
-	      || key[i] == 'p'
-	      || key[i] == '+'
+    for (var i = 0; i < key.length; i++) {
+      if (!(   (   key[i] >= '0' && key[i] <= '9')
+	    || (   key[i] >= 'a' && key[i] <= 'z')
+	    || (   key[i] >= 'A' && key[i] <= 'Z')
+	    || key[i] == '@'
+	    || key[i] == '.'
+	    || key[i] == '-'
+	    || key[i] == '_'
+	    || key[i] == '*'
+	    || key[i] == '#'
 	     ))
 	  return false;
       }
       return true;
-    }
-    else {
-      for (var i = 0; i < key.length; i++) {
-	if (!(   (   key[i] >= '0'
-		  && key[i] <= '9')
-	      || key[i] == '*'
-	      || key[i] == '#'
-	      || key[i] == 't'
-	      || key[i] == 'p'
-	      || key[i] == '+'
-	     )
-	   )
-	  return false;
-      }
-      return true;
-    }
   },
 
   isValidToneKey: function (key) {
