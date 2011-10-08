@@ -222,6 +222,20 @@ var LinphoneService = {
     return request;
   },
 
+  abort: function (callback) {
+    QDLogger.log("LinphoneService#abort");
+    var request = new Mojo.Service.Request(this.lpsUri, {
+      method: "abort",
+      onSuccess: callback,
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#abort failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
+    });
+    return request;
+  },
+
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
   // Only to end the function list with no trailing comma...

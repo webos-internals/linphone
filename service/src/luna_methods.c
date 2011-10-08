@@ -232,6 +232,23 @@ lc_finish (int sigval) {
 
 }
 
+// Abort the linphone core the shortest way and exit
+static void
+lc_abort () {
+
+  // Stop the repeating alarm...
+  INT_OFF;
+  ualarm (0, 0);
+
+  // ... and just exit with a message
+  fprintf (stdout, "Aborting Linphone...\n");
+
+  exit (0);
+
+}
+
+
+
 
 //
 // Escape a string so that it can be used directly in a JSON response.
@@ -998,11 +1015,22 @@ quit_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   // Return the results to webOS.
   ls_reply (lshandle, message, "{\"returnValue\": true}");
 
-
-  // Exit (gracefuly?) anyway
+  // Exit (the soft way)
   lc_finish (0);
 
 }
+
+static bool
+abort_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+
+  // Return the results to webOS.
+  ls_reply (lshandle, message, "{\"returnValue\": true}");
+
+  // Exit by all means... (the strong way)
+  lc_abort ();
+
+}
+
 
 
 LSMethod luna_methods[] = {
@@ -1020,6 +1048,7 @@ LSMethod luna_methods[] = {
   { "answer",	        answer_method         },
   { "terminate",        terminate_method      },
   { "quit",             quit_method           },
+  { "abort",            abort_method          },
   { 0, 0 }
 };
 

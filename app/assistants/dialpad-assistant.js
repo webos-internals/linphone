@@ -13,8 +13,12 @@ var DialpadAssistant = Class.create ({
 	command: 'do-prefs'
       },
       {
-	label:   "Reset Service",
-	command: 'do-reset'
+	label:   "Reset Service (soft)",
+	command: 'do-reset-soft'
+      },
+      {
+	label:   "Reset Service (hard)",
+	command: 'do-reset-hard'
       },
       {
 	label:   "Help",
@@ -30,7 +34,7 @@ var DialpadAssistant = Class.create ({
 
     this.deviceInfo = Mojo.Environment.DeviceInfo;
     this.isEmulator = (this.deviceInfo.modelNameAscii.toLowerCase() === "device");
-    this.isWebOS2x  = (this.deviceInfo.platformVersionMajor == 2);
+    this.isNotWebOS1x = (this.deviceInfo.platformVersionMajor != 1);
 
     this.dialString = "";
     this.inputNecessaryButtonsVisible = true;
@@ -48,7 +52,7 @@ var DialpadAssistant = Class.create ({
     // Add the appropriate class to the scene depending on we are a Pre or a Pixi...
     var screenHeight = this.deviceInfo.screenHeight;
     QDLogger.log ("DialpadAssistant#setup: screenHeight =", screenHeight);
-    this.controller.get ("dialpad").addClassName ((screenHeight == 480) ? " pre" : " pixi");
+    this.controller.get ("dialpad").addClassName ((screenHeight == 400) ? " pixi" : " pre");
     QDLogger.log ("DialpadAssistant#setup: dialpad.class =", this.controller.get ("dialpad").className);
 
 //?    TelephonyCommands.powerStartActivity ('linphone', this.POWER_MAX_ACTIVITY);
@@ -92,8 +96,8 @@ var DialpadAssistant = Class.create ({
     LinphoneEventListener.gstateSubscribe (this.gstateUpdate.bind (this));
     LinphoneService.signalGState ();
 
-    // If we are running 2.x, then an upstart-assisted service restart is needed until we fix the (signal-deafness) issue on relaunch!
-    if (this.isWebOS2x) {
+    // If we are not running 1.x, then an upstart-assisted service restart is needed until we fix the (signal-deafness) issue on relaunch!
+    if (this.isNotWebOS1x) {
       LinphoneService.quit ();
     }
 
@@ -735,9 +739,14 @@ var DialpadAssistant = Class.create ({
 	this.controller.stageController.pushScene ('preferences');
 	break;
 
-	// Make service quit ... and restart thanks to the upstart daemon (hopefully a workaround for the 2.x lockup issue...)
-      case 'do-reset':
+      // Make service quit gracefully... and restart thanks to the upstart daemon (hopefully a workaround for the 2.x/3.x lockup issue...)
+      case 'do-reset-soft':
 	LinphoneService.quit ();
+	break;
+
+      // Make service quit quickly ... and restart thanks to the upstart daemon (hopefully a workaround for the 2.x/3.x lockup issue...)
+      case 'do-reset-hard':
+	LinphoneService.abort ();
 	break;
 
 //      case 'do-help':
