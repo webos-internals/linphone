@@ -26,7 +26,7 @@ PID = org.webosinternals.linphone
 RUNTIME_DIR = /var/usr/lib/${PID}
 
 CFLAGS  := -g -DVERSION=\"${VERSION}\" -I${STAGING_DIR}/usr/include/glib-2.0 -I${STAGING_DIR}/usr/lib/glib-2.0/include -I${STAGING_DIR}/usr/include
-LDFLAGS := -g -L${STAGING_DIR}/usr/lib -Wl,-rpath,${RUNTIME_DIR} -Wl,-rpath-link,${STAGING_DIR}/usr/lib -llunaservice -lmjson -lglib-2.0 -llinphone
+LDFLAGS := -g -L${STAGING_DIR}/usr/lib -Wl,-rpath,${RUNTIME_DIR} -Wl,-rpath-link,${STAGING_DIR}/usr/lib -llunaservice -lmjson -lglib-2.0 -llinphone -lpthread
 
 linphoneservice: linphoneservice.o luna_service.o luna_methods.o
 

@@ -25,6 +25,10 @@
 #include <errno.h>
 #include <signal.h>
 
+#ifndef USE_SIGALRM
+#include <pthread.h>
+#endif
+
 #include <linphone/config.h>
 #include <linphone/linphonecore.h>
 
@@ -106,10 +110,17 @@ extern int   show_tick;
 //
 // We definitely need a variable to protect the Linphone core & LunaService critical sections against unwanted interrupts (so the Linphone core can be safely iterated)
 // since neither the Linphone core nor Luna Service are re-entrant...
-static volatile int noint;
-#define INT_OFF  noint = 1
-#define INT_ON   noint = 0
-#define INT_SKIP noint
+#ifndef USE_SIGALRM
+  pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+  #define INT_OFF  pthread_mutex_lock (&lock)
+  #define INT_ON   pthread_mutex_unlock (&lock)
+  #define INT_SKIP (pthread_mutex_lock (&lock) == EBUSY)
+#else
+  static volatile int noint;
+  #define INT_OFF  noint = 1
+  #define INT_ON   noint = 0
+  #define INT_SKIP noint
+#endif
 
 
 //
@@ -137,7 +148,12 @@ static int  tick_skip;
 static char tick_text[] = ".123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 // Better prototype the necessary stuff so lc_start() knows about it...
+#ifndef USE_SIGALRM
+  pthread_t lc_iterate_thread;
+  static void *lc_iterate (void *);
+#else
 static void lc_iterate (int);
+#endif
 static void lc_finish  (int);
 static LinphoneCoreVTable lc_cb_vtable;
 
@@ -171,6 +187,10 @@ lc_start () {
   linphone_core_enable_video (lc, FALSE, FALSE);
   linphone_core_enable_video_preview (lc, FALSE);
 
+#ifndef USE_SIGALRM
+  INT_ON;
+  pthread_create (&lc_iterate_thread, NULL, lc_iterate, NULL);
+#else
   // Initialize signal handlers
   signal (SIGTERM, lc_finish);
   signal (SIGINT,  lc_finish);
@@ -179,12 +199,21 @@ lc_start () {
   INT_ON;
   signal (SIGALRM, lc_iterate);
   ualarm (LC_ITERATE_TIME, LC_ITERATE_TIME);
-
+#endif
 }
 
 // Iterate the linphone core, possibly tracing the activity with a dot/alpha tick every second
-static void
-lc_iterate (int sigval) {
+#ifndef USE_SIGALRM
+  static void *
+  lc_iterate (void *arg) {
+#else
+  static void
+  lc_iterate (int sigval) {
+#endif
+
+#ifndef USE_SIGALRM
+  while (1) {
+#endif
 
   if (show_tick) {
     if (lc_tick == 0) {
@@ -197,6 +226,20 @@ lc_iterate (int sigval) {
   }
 
   // Never iterate the core if a function (method?) is currently accessing the core...
+#ifndef USE_SIGALRM
+  if (INT_SKIP) {
+    tick_skip++;
+  }
+
+  // Iterate the linphone core... (protected against itself too)!
+  else {
+    linphone_core_iterate (lc);
+    INT_ON;
+  }
+
+  usleep (LC_ITERATE_TIME);
+  }
+#else
   if (INT_SKIP) {
     tick_skip++;
     return;
@@ -206,6 +249,7 @@ lc_iterate (int sigval) {
   INT_OFF;
   linphone_core_iterate (lc);
   INT_ON;
+#endif
 
 }
 
@@ -220,7 +264,9 @@ lc_finish (int sigval) {
 
   // Wait a little, then stop the repeating alarm
   usleep (10*LC_ITERATE_TIME);
+#ifdef USE_SIGALRM
   ualarm (0, 0);
+#endif
 
   // Terminate the linphone core
   INT_OFF;
@@ -238,7 +284,9 @@ lc_abort () {
 
   // Stop the repeating alarm...
   INT_OFF;
+#ifdef USE_SIGALRM
   ualarm (0, 0);
+#endif
 
   // ... and just exit with a message
   fprintf (stdout, "Aborting Linphone...\n");
