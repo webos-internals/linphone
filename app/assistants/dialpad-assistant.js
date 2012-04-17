@@ -126,18 +126,19 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#activate: netStunServer       =", this.prefs.netStunServer);
     QDLogger.log ("DialpadAssistant#activate: netUpdated          =", this.prefs.netUpdated);
     QDLogger.log ("DialpadAssistant#activate: netValid            =", this.prefs.netValid);
+    QDLogger.log ("DialpadAssistant#activate: netDtmfMethod       =", this.prefs.netDtmfMethod);
 
     // Reset (restart) the service if asked to (FIXME: hidden in the HTML for now...)
     if (this.prefs.svcResetOnStart) {
       LinphoneService.quit ();
     }
 
-    // Set firewall policy
+    // Set network parameters 
     if (   (   this.forceRegistration 
 	    || this.prefs.netUpdated
 	   )
 	&& this.prefs.netValid) {
-      QDLogger.log ("DialpadAssistant#activate: firewalling...", this.forceRegistration ? "(forced)" : "");
+      QDLogger.log ("DialpadAssistant#activate: updating network parameters...", this.forceRegistration ? "(forced)" : "");
       var address;
       switch (this.prefs.netFirewallPolicy) {
       case 'none': address = ""; break;
@@ -145,6 +146,9 @@ var DialpadAssistant = Class.create ({
       case 'stun': address = this.prefs.netStunServer; break;
       }      
       LinphoneService.firewall (this.prefs.netFirewallPolicy, address);
+      
+      LinphoneService.dtmfMethod (this.prefs.netDtmfMethod);
+
       preferenceCookie.save ("netUpdated", false);
     }
 
@@ -282,6 +286,12 @@ var DialpadAssistant = Class.create ({
       QDLogger.log ("DialpadAssistant#handlePower: registering...");
       LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain, this.prefs.sipUseProxy ? this.prefs.sipProxy : this.prefs.sipDomain);
       this.forceRegistration = false;
+    }
+
+    // Set Network preferences
+    if (this.prefs.netValid) {
+      QDLogger.log ("DialpadAssistant#handlePower: updating DTMF method...");
+      LinphoneService.dtmfMethod (this.prefs.netDtmfMethod);
     }
   },
 
@@ -480,6 +490,10 @@ var DialpadAssistant = Class.create ({
 
     if (key) {
       TelephonyCommands.sendDTMF (key, true);
+      if (LinphoneCallState.callACTIVE ()) {
+        LinphoneService.sendDTMF (key);
+      }
+
       this.formatAndUpdateDialString (key, event);
     }
   },

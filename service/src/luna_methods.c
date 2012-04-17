@@ -948,6 +948,30 @@ firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 }
 
 //
+// DTMF...
+//
+static bool
+dtmf_method_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+
+  // Extract the arguments from the message
+  json_t *object  = json_parse_document (LSMessageGetPayload (message));
+  json_t *dtmfMethod  = !object ? NULL : json_find_first_label (object, "dtmfMethod");
+
+  // Check the arguments
+  if (!dtmfMethod || (dtmfMethod->child->type != JSON_STRING)) {
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing DTMF method\"}");
+  }
+
+  INT_OFF;
+  linphone_core_set_use_rfc2833_for_dtmf (lc, !strcmp(dtmfMethod->child->text, "rfc2833"));
+  linphone_core_set_use_info_for_dtmf(lc, !strcmp(dtmfMethod->child->text, "sipinfo"));
+  INT_ON;
+
+  // Return the results to webOS.
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
+}
+
+//
 // Status...
 //
 static bool
@@ -1058,6 +1082,28 @@ terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 }
 
 static bool
+send_dtmf_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
+
+  // Extract the arguments from the message
+  json_t *object = json_parse_document (LSMessageGetPayload(message));
+  json_t *dtmf = json_find_first_label (object, "dtmf");
+
+  // Check the arguments
+  if (!dtmf || (dtmf->child->type != JSON_STRING)) {
+    return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing dtmf\"}");
+  }
+
+  fprintf(stdout, "Sending DTMF: %c\n", dtmf->child->text[0]);
+
+  INT_OFF;
+  linphone_core_send_dtmf (lc, dtmf->child->text[0]);
+  INT_ON;
+  
+  // Return the results to webOS.
+  return ls_reply (lshandle, message, "{\"returnValue\": true}");
+}
+
+static bool
 quit_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
   // Return the results to webOS.
@@ -1090,11 +1136,13 @@ LSMethod luna_methods[] = {
   { "ipv6",	        ipv6_method           },
   { "signalGState",     signal_gstate_method  },
   { "firewall",		firewall_method	      },
+  { "dtmfMethod",       dtmf_method_method    },
   { "register",	        register_method       },
   { "unregister",       unregister_method     },
   { "call",	        call_method           },
   { "answer",	        answer_method         },
   { "terminate",        terminate_method      },
+  { "sendDtmf",         send_dtmf_method      },
   { "quit",             quit_method           },
   { "abort",            abort_method          },
   { 0, 0 }

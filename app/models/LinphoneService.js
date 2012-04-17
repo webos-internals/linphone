@@ -103,6 +103,22 @@ var LinphoneService = {
     return request;
   },
 
+  dtmfMethod: function (method, callback) {
+    QDLogger.log("LinphoneService#dtmfMethod: method =", method);
+    var request = new Mojo.Service.Request(this.lpsUri, {
+      method: "dtmfMethod",
+      parameters: {
+        "dtmfMethod": method
+      },
+      onSuccess: callback,
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#dtmfMethod failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
+    });
+    return request;
+  },
+
   call: function (number, callback) {
     QDLogger.log("LinphoneService#call: number =", number);
     var request = new Mojo.Service.Request(this.lpsUri, {
@@ -128,6 +144,23 @@ var LinphoneService = {
 //      onFailure: callback
       onFailure: function (reason) {
 	QDLogger.error ("LinphoneService#answer failure:", reason.errorText);
+	if (callback) callback (reason);
+      }
+    });
+    return request;
+  },
+
+  sendDTMF: function (dtmf, callback) {
+    QDLogger.log("LinphoneService#sendDtmf: dtmf =", dtmf);
+    var request = new Mojo.Service.Request(this.lpsUri, {
+      method: "sendDtmf",
+      parameters: {
+	"dtmf": dtmf,
+      },
+      onSuccess: callback,
+//      onFailure: callback
+      onFailure: function (reason) {
+	QDLogger.error ("LinphoneService#sendDtmf failure:", reason.errorText);
 	if (callback) callback (reason);
       }
     });

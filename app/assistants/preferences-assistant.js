@@ -64,7 +64,9 @@ var PreferencesAssistant = Class.create ({
 							   ], this.prefSelectedFieldNET);
     this.prefWidgetTextField ('netStunServer', this.prefChangedNET);
     this.prefWidgetTextField ('netNatAddress', this.prefChangedNET);
-
+    this.prefWidgetListSelectorField ('netDtmfMethod', [{label: 'RFC 2833', value: 'rfc2833', field: ''},
+                                                     {label: 'SIP INFO', value: 'sipinfo', field: ''}
+                                                    ], this.prefChangedNET);
   },
 
   activate: function (event) {

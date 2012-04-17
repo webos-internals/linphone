@@ -86,7 +86,7 @@
 	</div>
       </div>
 
-      <div class="palm-row last">
+      <div class="palm-row">
 	<div class="palm-row-wrapper">
 	  <div class="help-overlay" id="help-sipUseProxy"></div>
 	  <div class="label left" id="show-sipUseProxy">Use Proxy</div>
@@ -108,7 +108,7 @@
     <div class="palm-group-title" id="network">NETWORK</div>
     <div class="palm-list">
 
-      <div class="palm-row first last">
+      <div class="palm-row first">
 	<div class="palm-row-wrapper">
 	  <div class="help-overlay" id="help-netFirewall"></div>
 	  <div class="label left" id="show-netFirewallPolicy">Firewall</div>
@@ -126,6 +126,13 @@
 	    <div x-mojo-element="TextField" id="netStunServer"></div>
 	  </div>
 	</div>
+      </div>
+
+      <div class="palm-row last">
+        <div class="palm-row-wrapper">
+          <div class="label left" id="show-dtmfMethod">Send DTMFs using</div>
+          <div class="palm-list right" x-mojo-element="ListSelector" id="netDtmfMethod"></div>
+        </div>
       </div>
 
     </div>

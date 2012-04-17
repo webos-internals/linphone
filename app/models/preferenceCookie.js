@@ -26,12 +26,12 @@ var preferenceCookie = {
 
     svcResetOnStart: false,
 
-    sipName:     false,
-    sipPassword: false,
-    sipDomain:   false,
-    sipUseProxy: false,
-    sipUpdated:  false,
-    sipValid:    false,
+    sipName:       false,
+    sipPassword:   false,
+    sipDomain:     false,
+    sipUseProxy:   false,
+    sipUpdated:    false,
+    sipValid:      false,
 
     sipUnregisterOnExit: true,
 
@@ -40,6 +40,7 @@ var preferenceCookie = {
     netStunServer    : false,
     netUpdated       : false,
     netValid         : true,
+    netDtmfMethod    : 'rfc2833',
   },
 
   load: function () {
