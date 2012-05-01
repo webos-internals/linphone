@@ -330,24 +330,21 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#handleCall");
 
     // If back to idle, show dial button
-    if (LinphoneCallState.callIDLE ()) {
-      QDLogger.log ("DialpadAssistant#handleCall: IDLE");
+    if (LinphoneCallState.callIDLE () || LinphoneCallState.callENDED ()) {
+      QDLogger.log ("DialpadAssistant#handleCall: IDLE or ENDED");
       this.buttonDialON (true);
     }
 
-    // If call finished for any reason, hide any dial/disconnect button
-    if (   LinphoneCallState.callENDED ()
-	|| LinphoneCallState.callFAILED ()
+    // If call failed for any reason, hide any dial/disconnect button
+    if ( LinphoneCallState.callFAILED ()
        ) {
-
-      QDLogger.log ("DialpadAssistant#handleCall: ENDED or FAILED");
+      QDLogger.log ("DialpadAssistant#handleCall: FAILED");
       this.buttonEmptyON (true);
-      // In case call failed, we might suspect a registration issue, so retry a registration...
-      if (LinphoneCallState.callFAILED ()) {
-	QDLogger.log ("DialpadAssistant#handleCall: FAILED -- retry registration");
-	this.alert ("Call Error: need to confirm registration");
-	LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain);
-      }
+
+      // We might suspect a registration issue, so retry a registration...
+      QDLogger.log ("DialpadAssistant#handleCall: FAILED -- retry registration");
+      this.alert ("Call Error: need to confirm registration");
+      LinphoneService.register (this.prefs.sipName, this.prefs.sipPassword, this.prefs.sipDomain);
     }
   },
 

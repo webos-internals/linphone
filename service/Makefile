@@ -89,12 +89,12 @@ INSTALL_EXE_LIST = \
 
 INSTALL_LIB_LIST = \
   $(addprefix $(STAGING_DIR)/usr/lib/, \
-     liblinphone.so.3 \
+     liblinphone.so.4 \
      libortp.so.8 \
-     libmediastreamer.so.0 \
-     libosip2.so.4 \
-     libosipparser2.so.4 \
-     libeXosip2.so.4 \
+     libmediastreamer.so.1 \
+     libosip2.so.7 \
+     libosipparser2.so.7 \
+     libeXosip2.so.7 \
      libspeex.so.1 \
      libspeexdsp.so.1 \
      libgsm.so.1 \

@@ -437,7 +437,7 @@ lc_cb_bye_received (LinphoneCore *lc, const char *from) {
 }
 
 static void
-lc_cb_notify_received (LinphoneCore *lc, const char *from, const char *msg) {
+lc_cb_notify_received (LinphoneCore *lc, LinphoneCall *call, const char *from, const char *msg) {
   fprintf (stdout, "Notify type %s from %s\n", msg, from);
   if (!strcmp (msg,"refer")) {
     fprintf (stdout, "The distant SIP end point get the refer we can close the call\n");
@@ -480,9 +480,11 @@ lc_cb_display_url (LinphoneCore *lc, const char *something, const char *url) {
 }
 
 static void
-lc_cb_text_received(LinphoneCore *lc, LinphoneChatRoom *cr, const char *from, const char *msg) {
-  fprintf (stdout, "%s: %s\n", from, msg);
+lc_cb_text_received(LinphoneCore *lc, LinphoneChatRoom *cr, const LinphoneAddress *from, const char *msg) {
+  char *address_string = linphone_address_as_string(from);
+  fprintf (stdout, "%s: %s\n", address_string, msg);
   fflush (stdout);
+  ms_free(address_string);
   // TODO: provide mechanism for answering.. ('say' command?)
 }
 
@@ -496,44 +498,76 @@ ls_signal_general_state (const char *state, const char *message) {
 static unsigned char general_state[64];
 
 static void
-lc_cb_general_state (LinphoneCore *lc, LinphoneGeneralState *gstate) {
+lc_cb_global_state_changed (LinphoneCore *lc, LinphoneGlobalState gstate, const char *message) {
+  #define GSCASE(s) case LinphoneGlobal##s: strcpy (general_state, "Global"#s); break
 
-#define GSCASE(s) case GSTATE_##s: strcpy (general_state, #s); break
-  switch (gstate->new_state) {
-    GSCASE(POWER_OFF);
-    GSCASE(POWER_STARTUP);
-    GSCASE(POWER_ON);
-    GSCASE(POWER_SHUTDOWN);
-
-    GSCASE(REG_NONE);
-    GSCASE(REG_PENDING);
-    GSCASE(REG_OK);
-    GSCASE(REG_FAILED);
-
-    GSCASE(CALL_IDLE);
-    GSCASE(CALL_OUT_INVITE);
-    GSCASE(CALL_OUT_RINGING);
-    GSCASE(CALL_OUT_CONNECTED);
-    GSCASE(CALL_IN_INVITE);
-    GSCASE(CALL_IN_CONNECTED);
-    GSCASE(CALL_END);
-
-    GSCASE(CALL_ERROR);
-    GSCASE(INVALID);
-
-    default:
-      sprintf (general_state, "UNKNOWN_%d", gstate->new_state);
+  switch(gstate) {
+    GSCASE(Off);
+    GSCASE(Startup);
+    GSCASE(On);
+    GSCASE(Shutdown);
   }
 
-  ls_signal_general_state (general_state, gstate->message);
+  ls_signal_general_state(general_state, message);
 
-  if (show_gstate) {
+  if(show_gstate) {
     fprintf (stdout, "%s", general_state);
-    if (gstate->message) fprintf (stdout, " %s", gstate->message);
+    if (message) fprintf (stdout, " %s", message);
     fprintf (stdout, "\n");
     fflush (stdout);
   }
+}
 
+static void
+lc_cb_call_state_changed (LinphoneCore *lc, LinphoneCall *call, LinphoneCallState cstate, const char *message) {
+  #define CSCASE(s) case LinphoneCall##s: strcpy (general_state, "Call"#s); break
+
+  switch(cstate) {
+    CSCASE(Idle);
+    CSCASE(IncomingReceived);
+    CSCASE(OutgoingInit);
+    CSCASE(OutgoingProgress);
+    CSCASE(OutgoingRinging);
+    CSCASE(OutgoingEarlyMedia);
+    CSCASE(Connected);
+    CSCASE(StreamsRunning);
+    CSCASE(Pausing);
+    CSCASE(Resuming);
+    CSCASE(Refered);
+    CSCASE(Error);
+    CSCASE(End);
+  }
+
+  ls_signal_general_state(general_state, message);
+
+  if(show_gstate) {
+    fprintf (stdout, "%s", general_state);
+    if (message) fprintf (stdout, " %s", message);
+    fprintf (stdout, "\n");
+    fflush (stdout);
+  }
+}
+
+static void
+lc_cb_registration_state_changed (LinphoneCore *lc, LinphoneProxyConfig *cfg, LinphoneRegistrationState rstate, const char *message) {
+  #define RSCASE(s) case LinphoneRegistration##s: strcpy (general_state, "Registration"#s); break
+
+  switch(rstate) {
+    RSCASE(None);
+    RSCASE(Progress);
+    RSCASE(Ok);
+    RSCASE(Cleared);
+    RSCASE(Failed);
+  }
+
+  ls_signal_general_state(general_state, message);
+
+  if(show_gstate) {
+    fprintf (stdout, "%s", general_state);
+    if (message) fprintf (stdout, " %s", message);
+    fprintf (stdout, "\n");
+    fflush (stdout);
+  }
 }
 
 static void
@@ -543,7 +577,7 @@ lc_cb_display_refer (LinphoneCore * lc,const char *refer_to) {
 }
 
 static void
-lc_cb_dtmf_received (LinphoneCore *lc, int dtmf) {
+lc_cb_dtmf_received (LinphoneCore *lc, LinphoneCall *call, int dtmf) {
   fprintf (stdout, "Receiving tone %c\n", dtmf);
   fflush (stdout);
 }
@@ -632,25 +666,18 @@ stub () {
 }
 
 static LinphoneCoreVTable lc_cb_vtable = {
-  /* Could be dummies if needed */
-  .show                   = /* stub, // */ lc_cb_show,
-  .notify_presence_recv   = /* stub, // */ lc_cb_notify_presence_received,
-  .new_unknown_subscriber = /* stub, // */ lc_cb_new_unknown_subscriber,
-  .display_question       = /* stub, // */ lc_cb_display_question,
-  .inv_recv               = /* stub, // */ lc_cb_inv_received,
-  .buddy_info_updated     = /* stub, // */ lc_cb_buddy_info_updated,
-
-  .bye_recv               = lc_cb_bye_received,
-  .notify_recv            = lc_cb_notify_received,
-  .display_status         = lc_cb_display_status,
-  .display_message        = lc_cb_display_something,
-  .display_warning        = lc_cb_display_warning,
-  .display_url            = lc_cb_display_url,
-  .text_received          = lc_cb_text_received,
-  .general_state          = lc_cb_general_state,
-  .dtmf_received          = lc_cb_dtmf_received,
-  .refer_received         = lc_cb_display_refer,
-  .auth_info_requested    = lc_cb_prompt_for_auth
+  .notify_recv                = lc_cb_notify_received,
+  .display_status             = lc_cb_display_status,
+  .display_message            = lc_cb_display_something,
+  .display_warning            = lc_cb_display_warning,
+  .display_url                = lc_cb_display_url,
+  .text_received              = lc_cb_text_received,
+  .global_state_changed       = lc_cb_global_state_changed,
+  .registration_state_changed = lc_cb_registration_state_changed,
+  .call_state_changed         = lc_cb_call_state_changed,
+  .dtmf_received              = lc_cb_dtmf_received,
+  .refer_received             = lc_cb_display_refer,
+  .auth_info_requested        = lc_cb_prompt_for_auth
 
 };
 
@@ -927,18 +954,18 @@ firewall_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
   // Either we provide the IP address of the NAT gateway...
   if (!strcmp (policy->child->text, "nat")) {
     linphone_core_set_nat_address (lc, address->child->text);
-    linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_USE_NAT_ADDRESS);
+    linphone_core_set_firewall_policy (lc, LinphonePolicyUseNatAddress);
   }
 
   // Or we provide the name of a STUN server that will find us out...
   else if (!strcmp (policy->child->text, "stun")) {
     linphone_core_set_stun_server (lc, address->child->text);
-    linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_USE_STUN);
+    linphone_core_set_firewall_policy (lc, LinphonePolicyUseStun);
   }
 
   // Or just say with have a direct connection to the internet!
   else {
-    linphone_core_set_firewall_policy (lc, LINPHONE_POLICY_NO_FIREWALL);
+    linphone_core_set_firewall_policy (lc, LinphonePolicyNoFirewall);
   }
 
   INT_ON;
@@ -1037,11 +1064,15 @@ call_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
   INT_OFF;
   LinphoneCall *call   = linphone_core_get_current_call (lc);
-  int           invite = linphone_core_invite (lc, sipurl->child->text);
   INT_ON;
   if (call != NULL) {
     return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Terminate current call first\"}");
-  } else if (invite == -1) {
+  }
+
+  INT_OFF;
+  LinphoneCall *new_call   = linphone_core_invite (lc, sipurl->child->text);
+  INT_ON;
+  if (new_call == NULL) {
     return ls_reply (lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Error from linphone_core_invite\"}");
   } else {
     return ls_reply (lshandle, message, "{\"returnValue\": true}");

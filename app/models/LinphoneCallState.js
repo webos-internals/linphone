@@ -21,24 +21,32 @@
 var LinphoneCallState = {
 
 // General state as returned by the linphone service (3 groups: power/registration/call)
-  POWER_OFF          : "POWER_OFF",
-  POWER_STARTUP      : "POWER_STARTUP",
-  POWER_ON           : "POWER_ON",
-  POWER_SHUTDOWN     : "POWER_SHUTDOWN",
+  GlobalOff          : "GlobalOff",
+  GlobalStartup      : "GlobalStartup",
+  GlobalOn           : "GlobalOn",
+  GlobalShutdown     : "GlobalShutdown",
   
-  REG_NONE           : "REG_NONE",
-  REG_OK             : "REG_OK",
-  REG_FAILED         : "REG_FAILED",
-  REG_PENDING        : "REG_PENDING",
+  RegistrationNone           : "RegistrationNone",
+  RegistrationOk             : "RegistrationOk",
+  RegistrationFailed         : "RegistrationFailed",
+  RegistrationProgress       : "RegistrationProgress",
+  RegistrationCleared        : "RegistrationCleared",
   
-  CALL_IDLE          : "CALL_IDLE",
-  CALL_OUT_INVITE    : "CALL_OUT_INVITE",
-  CALL_OUT_RINGING   : "CALL_OUT_RINGING",
-  CALL_OUT_CONNECTED : "CALL_OUT_CONNECTED",
-  CALL_IN_INVITE     : "CALL_IN_INVITE",
-  CALL_IN_CONNECTED  : "CALL_IN_CONNECTED",
-  CALL_END           : "CALL_END",
-  CALL_ERROR         : "CALL_ERROR",
+  CallIdle          : "CallIdle",
+  CallOutgoingInit    : "CallOutgoingInit",
+  CallOutgoingProgress : "CallOutgoingProgress",
+  CallOutgoingRinging   : "CallOutgoingRinging",
+  CallOutgoingEarlyMedia : "CallOutgoingEarlyMedia",
+  CallIncomingReceived     : "CallIncomingReceived",
+  CallConnected : "CallConnected",
+  CallStreamsRunning : "CallStreamsRunning",
+  CallPausing : "CallPausing",
+  CallPaused : "CallPaused",
+  CallResuming : "CallResuming",
+  CallRefered : "CallRefered",
+  CallEnd           : "CallEnd",
+  CallError         : "CallError",
+  
 
   INVALID            : "INVALID",
 
@@ -75,14 +83,14 @@ var LinphoneCallState = {
 
     switch (newstate) {
 
-    case this.POWER_OFF:
-    case this.POWER_STARTUP:
-    case this.POWER_ON:
-    case this.POWER_SHUTDOWN:
+    case this.GlobalOff:
+    case this.GlobalStartup:
+    case this.GlobalOn:
+    case this.GlobalShutdown:
       this.powerState = newstate;
 //      QDLogger.log ("LinphoneCallState#update: powerState =", newstate, "/ this.powerState =", this.powerState);
       this.powerEvent = true;
-      if (newstate !== this.POWER_ON) {
+      if (newstate !== this.GlobalOn) {
 	this.callState = false;
 	if (callCB) callCB (newstate, message);
 	this.registerState = false;
@@ -91,51 +99,63 @@ var LinphoneCallState = {
       if (pwrCB) pwrCB (newstate, message);
       break;
 
-    case this.REG_NONE:
-    case this.REG_OK:
-    case this.REG_PENDING:
-    case this.REG_FAILED:
-      this.powerState = this.POWER_ON;
+    case this.RegistrationNone:
+    case this.RegistrationOk:
+    case this.RegistrationProgress:
+    case this.RegistrationFailed:
+      this.powerState = this.GlobalOn;
       this.registerState = newstate;
 //      QDLogger.log ("LinphoneCallState#update: registerState =", newstate, "/ this.registerState =", this.registerState);
       this.registerEvent = true;
-      // Beware: REG_OK is a special case as Linphone periodically confirms registration...
-      if (newstate !== this.REG_OK) {
+      // Beware: RegistrationOk is a special case as Linphone periodically confirms registration...
+      if (newstate !== this.RegistrationOk) {
 	this.callState = false;
 	if (callCB) callCB (newstate, message);
       }
       if (regCB) regCB (newstate, message);
       break;
 
-    case this.CALL_IDLE:
-    case this.CALL_END:
-    case this.CALL_ERROR:
-      this.powerState    = this.POWER_ON;
-      this.registerState = this.REG_OK;
+    case this.CallIdle:
+    case this.CallEnd:
+    case this.CallError:
+      this.powerState    = this.GlobalOn;
+      this.registerState = this.RegistrationOk;
       this.callState = newstate;
       this.callEvent = true;
       if (callCB) callCB (newstate, message);
       break;
 
-    case this.CALL_OUT_INVITE:
-    case this.CALL_OUT_RINGING:
-    case this.CALL_OUT_CONNECTED:
-      this.powerState    = this.POWER_ON;
-      this.registerState = this.REG_OK;
+    case this.CallOutgoingInit:
+    case this.CallOutgoingRinging:
+      this.powerState    = this.GlobalOn;
+      this.registerState = this.RegistrationOk;
       this.callState    = newstate;
       this.callEvent    = true;
       this.callOutEvent = true;
       if (callOutCB) callOutCB (newstate, message);
       break;
 
-    case this.CALL_IN_INVITE:
-    case this.CALL_IN_CONNECTED:
-      this.powerState    = this.POWER_ON;
-      this.registerState = this.REG_OK;
+    case this.CallIncomingReceived:
+      this.powerState    = this.GlobalOn;
+      this.registerState = this.RegistrationOk;
       this.callState   = newstate;
       this.callEvent   = true;
       this.callInEvent = true;
       if (callInCB) callInCB (newstate, message);
+      break;
+
+    case this.CallConnected:
+      this.powerState    = this.GlobalOn;
+      this.registerState = this.RegistrationOk;
+      this.callState   = newstate;
+      this.callEvent   = true;
+
+      if(this.callInEvent) {
+        if (callInCB) callInCB (newstate, message);
+      }
+      else if(this.callOutEvent) {
+        if (callOutCB) callOutCB (newstate, message);
+      }
       break;
 
     case this.INVALID:
@@ -151,7 +171,7 @@ var LinphoneCallState = {
 /* ----8<--------8<--------8<--------8<--------8<--------8<--------8<---- */
 
   powerOK: function () {
-    var status = (this.powerState === this.POWER_ON);
+    var status = (this.powerState === this.GlobalOn);
 //    QDLogger.log ("LinphoneCallState#powerOK?", status, "[ this.powerState =", this.powerState, "]");
     return status;
   },
@@ -160,7 +180,7 @@ var LinphoneCallState = {
 //    QDLogger.log ("LinphoneCallState#registerNONE?");
     return (   this.powerOK ()
 	    && (   !this.registerState
-		|| (this.registerState === this.REG_FAILED)
+		|| (this.registerState === this.RegistrationFailed)
 	       )
 	   );
   },
@@ -168,21 +188,21 @@ var LinphoneCallState = {
   registerPENDING: function () {
 //    QDLogger.log ("LinphoneCallState#registerPENDING?");
     return (   this.powerOK ()
-	    && (this.registerState === this.REG_PENDING)
+	    && (this.registerState === this.RegistrationProgress)
 	   );
   },
 
   registerVALID: function () {
 //    QDLogger.log ("LinphoneCallState#registerVALID?");
     return (   this.powerOK ()
-	    && (this.registerState === this.REG_OK)
+	    && (this.registerState === this.RegistrationOk)
 	   );
   },
 
   registerFAILED: function () {
 //    QDLogger.log ("LinphoneCallState#registerFAILED?");
     return (    this.powerOK ()
-	    &&  (this.registerState === this.REG_FAILED)
+	    &&  (this.registerState === this.RegistrationFailed)
 	   );
   },
 
@@ -190,7 +210,7 @@ var LinphoneCallState = {
 //    QDLogger.log ("LinphoneCallState#callNONE?");
     return (   this.registerVALID ()
 	    && (   !this.callState
-		|| (this.callState  === this.CALL_IDLE)
+		|| (this.callState  === this.CallIdle)
 	       )
 	   );
   },
@@ -206,44 +226,42 @@ var LinphoneCallState = {
   callFAILED: function () {
 //    QDLogger.log ("LinphoneCallState#callFAILED?");
     return (   this.registerVALID ()
-	    && (this.callState === this.CALL_ERROR)
+	    && (this.callState === this.CallError)
 	   );
   },
 
   callDIALING: function () {
 //    QDLogger.log ("LinphoneCallState#callDIALING?");
     return (   this.registerVALID ()
-	    && (this.callState === this.CALL_OUT_INVITE)
+	    && (this.callState === this.CallOutgoingInit)
 	   );
   },
 
   callRINGOUT: function () {
 //    QDLogger.log ("LinphoneCallState#callRINGOUT?");
     return (   this.registerVALID ()
-	    && (this.callState === this.CALL_OUT_RINGING)
+	    && (this.callState === this.CallOutgoingRinging)
 	   );
   },
 
   callRINGIN: function () {
 //    QDLogger.log ("LinphoneCallState#callRINGIN?");
     return (   this.registerVALID ()
-	    && (this.callState === this.CALL_IN_INVITE)
+	    && (this.callState === this.CallIncomingReceived)
 	   );
   },
 
   callCONNECTED: function () {
 //    QDLogger.log ("LinphoneCallState#callCONNECTED?");
     return (   this.registerVALID ()
-	    && (   (this.callState === this.CALL_OUT_CONNECTED)
-		|| (this.callState === this.CALL_IN_CONNECTED)
-	       )
+	    && (this.callState === this.CallConnected)
 	   );
   },
 
   callENDED: function () {
 //    QDLogger.log ("LinphoneCallState#callENDED?");
     return (   this.registerVALID ()
-	    && (this.callState === this.CALL_END)
+	    && (this.callState === this.CallEnd)
 	   );
   },
 
