@@ -71,6 +71,7 @@ var LinphoneCallState = {
 
   update: function (newstate, message, anyCB, pwrCB, regCB, callCB, callInCB, callOutCB, invCB) {
 
+    oldstate = this.generalState;
     this.generalState  = newstate;
 //    QDLogger.log ("LinphoneCallState#update: newstate =", newstate, "/ this.generalState =", this.generalState);
     if (anyCB) anyCB (newstate, message);
@@ -150,10 +151,13 @@ var LinphoneCallState = {
       this.callState   = newstate;
       this.callEvent   = true;
 
-      if(this.callInEvent) {
+      if(oldstate == this.CallIncomingReceived) {
+        this.callInEvent = true;
         if (callInCB) callInCB (newstate, message);
       }
-      else if(this.callOutEvent) {
+      else {
+      this.callInEvent = true;
+        this.callOutEvent = true;
         if (callOutCB) callOutCB (newstate, message);
       }
       break;
