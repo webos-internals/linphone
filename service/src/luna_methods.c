@@ -1097,6 +1097,20 @@ answer_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 }
 
 static bool
+call_info_method (LSHandle *lshandle, LSMessage *message, void *ctx) {
+  INT_OFF;
+  LinphoneCall *call   = linphone_core_get_current_call (lc);
+  char *remote_address = linphone_call_get_remote_address_as_string(call);
+  INT_ON;
+
+  fprintf(stdout, "call_info_method: remoteAddress: %s\n", remote_address);
+  sprintf(buffer, "{\"returnValue\": true, \"remoteAddress\": \"%s\"}", json_escape_str (remote_address, esc_buffer));
+
+  ms_free(remote_address);
+  return ls_reply (lshandle, message, buffer);
+}
+
+static bool
 terminate_method (LSHandle* lshandle, LSMessage *message, void *ctx) {
 
   INT_OFF;
@@ -1172,6 +1186,7 @@ LSMethod luna_methods[] = {
   { "unregister",       unregister_method     },
   { "call",	        call_method           },
   { "answer",	        answer_method         },
+  { "callInfo",         call_info_method      },
   { "terminate",        terminate_method      },
   { "sendDtmf",         send_dtmf_method      },
   { "quit",             quit_method           },

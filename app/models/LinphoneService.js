@@ -150,6 +150,19 @@ var LinphoneService = {
     return request;
   },
 
+  callInfo: function (callback) {
+    QDLogger.log("LinphoneService#callInfo");
+    var request = new Mojo.Service.Request(this.lpsUri, {
+      method: "callInfo",
+      onSuccess: callback,
+      onFailure: function (reason) {
+        QDLogger.error ("LinphoneService#callInfo failure:", reason.errorText);
+        if (callback) callback (reason);
+      }
+    });
+    return request;
+  },
+
   sendDTMF: function (dtmf, callback) {
     QDLogger.log("LinphoneService#sendDtmf: dtmf =", dtmf);
     var request = new Mojo.Service.Request(this.lpsUri, {

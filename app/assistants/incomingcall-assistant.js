@@ -3,8 +3,7 @@ var IncomingcallAssistant = Class.create ({
   initialize: function (caller, missedCallSubscribe, dialogSceneController) {
     QDLogger.log( "IncomingcallAssistant#initialize", caller);
 
-    // Remove the useless <sip:> wrapper
-    this.caller              = caller.replace (/^.*<sip:|>$/ig, "");
+    this.caller = caller;
     this.missedCallSubscribe = missedCallSubscribe;
 
     this.dialogSceneController = dialogSceneController;
@@ -32,13 +31,22 @@ var IncomingcallAssistant = Class.create ({
     this.sceneCtrl.get ('reject_button').addEventListener (Mojo.Event.tap, this.rejectCall.bindAsEventListener (this));
     
     var  displayTemplate = "incomingcall/details-unknown";
-    this.displayName     = "Unknown Caller";
-    this.displayNumber   = this.caller;
 
-    // If the phone number is the same as the contact name, blank out the number
-    if (this.displayNumber === this.displayName) {
-      this.displayNumber = "";
+    var matchedAddress = this.caller.match(/(\".*\")?\s*<sip:(.*)@(.*)>/);
+
+    if(matchedAddress) {
+      this.displayName     = matchedAddress[1].replace(/\"/g, "");
+      this.displayNumber   = matchedAddress[2];
     }
+
+    if(!this.displayName) {
+      this.displayName = "Unknown Caller";
+    }
+
+    if(!this.displayNumber) {
+      this.displayNumber = "Unknown Number";
+    }
+
     var displayData = Mojo.View.render ({
       object: this,
       template: displayTemplate

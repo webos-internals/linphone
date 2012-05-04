@@ -354,7 +354,11 @@ var DialpadAssistant = Class.create ({
     // So we get an incoming call: push a popup scene to manage answer/reject & information
     if (LinphoneCallState.callRINGIN ()) {
       QDLogger.log ("DialpadAssistant#handleCallIn: RINGIN");
-      this.incomingCallPopup (message, this.missedCallSubscribeBound);
+
+      // Request call info and show the incoming call popup when we get it
+      var obj = this;
+      LinphoneService.callInfo(function(callInfo) { obj.incomingCallPopup(callInfo.remoteAddress, obj.missedCallSubscribeBound) } );
+
       this.buttonEmptyON (true);
     }
 
