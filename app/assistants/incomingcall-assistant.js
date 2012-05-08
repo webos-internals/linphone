@@ -35,16 +35,17 @@ var IncomingcallAssistant = Class.create ({
     var matchedAddress = this.caller.match(/(\".*\")?\s*<sip:(.*)@(.*)>/);
 
     if(matchedAddress) {
-      this.displayName     = matchedAddress[1].replace(/\"/g, "");
-      this.displayNumber   = matchedAddress[2];
-    }
+      if(matchedAddress[1]) {
+        this.displayName = matchedAddress[1].replace(/\"/g, "");
+      } else {
+        this.displayName = "Unknown Caller";
+      }
 
-    if(!this.displayName) {
-      this.displayName = "Unknown Caller";
-    }
-
-    if(!this.displayNumber) {
-      this.displayNumber = "Unknown Number";
+      if(matchedAddress[2]) {
+        this.displayNumber = matchedAddress[2];
+      } else {
+        this.displayNumber = "Unknown Number";
+      }
     }
 
     var displayData = Mojo.View.render ({
