@@ -3,13 +3,17 @@ var TelephonyCommands = {
   dtmfUri    : "palm://com.palm.audio/dtmf",
 
   sendDTMF: function (tone, feedback) {
+	  QDLogger.log ("TelephonyCommands#sendDTMF: tone=" + tone + ", feedback=" + feedback);
     var request = new Mojo.Service.Request (this.dtmfUri, {
-      method: ("playDTMF"),
-      parameters: ({
-	"id": tone,
-	oneshot: true,
-	feedbackOnly: feedback
-      })
+      method: "playDTMF",
+      parameters: {
+        "id": tone,
+        oneshot: true,
+        feedbackOnly: feedback
+      },
+      onFailure: function () {
+	      QDLogger.log ("TelephonyCommands#sendDTMF: failure (tone=" + tone + ", feedback=" + feedback + ")");
+      }
     });
     return request;
   },
@@ -40,17 +44,18 @@ var TelephonyCommands = {
   displayUri : "palm://com.palm.display/control",
 
   proxSet: function (enable, callback) {
+	  QDLogger.log ("TelephonyCommands#proxSet: enable=" + enable);
     var request = new Mojo.Service.Request (this.displayUri, {
       method: "setProperty",
       parameters: {
-	"proximityEnabled": enable,
-	"client": Mojo.appInfo.id,
+	      "proximityEnabled": enable,
+	      "client": Mojo.appInfo.id,
       },
       onSuccess: function (payload) {
-	if (callback) callback (payload);
+	      if (callback) callback (payload);
       },
       onFailure: function () {
-	QDLogger.log ("TelephonyCommands#proxSet: failure (enable=" + enable + ")");
+	      QDLogger.log ("TelephonyCommands#proxSet: failure (enable=" + enable + ")");
       }
     });
     return request;

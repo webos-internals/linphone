@@ -1,6 +1,6 @@
 #!/bin/sh                                                                                       
 
-PID="org.webosinternals.linphone"
+PID="com.palm.webosinternals.linphone"
 SID="$PID.service"
 BIN="linphoneservice"
 

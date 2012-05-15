@@ -1,12 +1,12 @@
 {
   "role": {
-     "exeName":"/var/usr/sbin/org.webosinternals.linphone.service",
+     "exeName":"/var/usr/sbin/com.palm.webosinternals.linphone.service",
      "type": "dynamic",
-     "allowedNames": ["org.webosinternals.linphone.service"]
+     "allowedNames": ["com.palm.webosinternals.linphone.service"]
   },
   "permissions": [
     {
-      "service":"org.webosinternals.linphone.service",
+      "service":"com.palm.webosinternals.linphone.service",
       "inbound":["*"],
       "outbound":["*"]
     }

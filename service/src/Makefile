@@ -22,7 +22,7 @@ STAGING_DIR = /srv/preware/cross-compile/staging/${ARCH}
 CC = gcc
 
 # Target the final installation & force a different runtime dir (used to be ${STAGING_DIR}/usr/lib, now rpath-linked... Quite nice!)
-PID = org.webosinternals.linphone
+PID = com.palm.webosinternals.linphone
 RUNTIME_DIR = /var/usr/lib/${PID}
 
 CFLAGS  := -g -DVERSION=\"${VERSION}\" -I${STAGING_DIR}/usr/include/glib-2.0 -I${STAGING_DIR}/usr/lib/glib-2.0/include -I${STAGING_DIR}/usr/include
@@ -33,9 +33,9 @@ linphoneservice: linphoneservice.o luna_service.o luna_methods.o
 HOST = cdma-pre
 
 install: linphoneservice
-#	- ssh root@${HOST} killall org.webosinternals.linphoneservice
-#	scp linphoneservice root@${HOST}:/var/usr/sbin/org.webosinternals.linphoneservice.new
-#	ssh root@${HOST} mv /var/usr/sbin/org.webosinternals.linphoneservice.new /var/usr/sbin/org.webosinternals.linphoneservice
+#	- ssh root@${HOST} killall com.palm.webosinternals.linphoneservice
+#	scp linphoneservice root@${HOST}:/var/usr/sbin/com.palm.webosinternals.linphoneservice.new
+#	ssh root@${HOST} mv /var/usr/sbin/com.palm.webosinternals.linphoneservice.new /var/usr/sbin/com.palm.webosinternals.linphoneservice
 	novacom put file://home/root/linphoneservice < linphoneservice
 
 clobber:

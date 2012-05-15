@@ -185,7 +185,9 @@ var DialpadAssistant = Class.create ({
     TelephonyCommands.displayDNAST (false);
     TelephonyCommands.setAudioScenario ("media_back_speaker");
     if (this.proximitySensor) {
+      QDLogger.log ("DialpadAssistant#cleanup: cancelling proximity sensor");
       this.proximitySensor.cancel ();
+      delete this.proximitySensor;
     }
 //?    TelephonyCommands.powerEndActivity ('linphone');
 
@@ -392,7 +394,11 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#buttonEmptyON", setAudioProx);
     if (setAudioProx && !this.isEmulator) {
       this.audioScenario   = TelephonyCommands.setAudioScenario ("media_back_speaker");
-      this.proximitySensor.cancel ();
+      if(this.proximitySensor) {
+        QDLogger.log ("DialpadAssistant#buttonEmptyON: cancelling proximity sensor");
+        this.proximitySensor.cancel ();
+        delete this.proximitySensor;
+      }
     }
     this.controller.get ('empty_button'     ).show ();
     this.controller.get ('dial_button'      ).hide ();
@@ -403,7 +409,11 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#buttonDialON", setAudioProx);
     if (setAudioProx && !this.isEmulator) {
       this.audioScenario   = TelephonyCommands.setAudioScenario ("media_back_speaker");
-      this.proximitySensor.cancel ();
+      if(this.proximitySensor) {
+        QDLogger.log ("DialpadAssistant#buttonDialON: cancelling proximity sensor");
+        this.proximitySensor.cancel ();
+        delete this.proximitySensor;
+      }
     }
     this.controller.get ('empty_button'     ).hide ();
     this.controller.get ('dial_button'      ).show ();
@@ -414,7 +424,9 @@ var DialpadAssistant = Class.create ({
     QDLogger.log ("DialpadAssistant#buttonDisconnectON", setAudioProx);
     if (setAudioProx && !this.isEmulator) {
        this.audioScenario   = TelephonyCommands.setAudioScenario ("media_front_speaker");
-       this.proximitySensor = TelephonyCommands.proxSet (true);
+       if(!this.proximitySensor) {
+         this.proximitySensor = TelephonyCommands.proxSet (true);
+       }
     }
     this.controller.get ('empty_button'     ).hide ();
     this.controller.get ('dial_button'      ).hide ();

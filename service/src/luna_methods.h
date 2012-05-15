@@ -23,7 +23,7 @@
 
 #include <lunaservice.h>
 
-#define LUNA_SERVICE_NAME "org.webosinternals.linphone.service"
+#define LUNA_SERVICE_NAME "com.palm.webosinternals.linphone.service"
 
 bool luna_register_methods (LSPalmService *serviceHandle, LSError lserror);
 
