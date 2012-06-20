@@ -4,7 +4,7 @@
 
 	"noWindow": true,
 
-	"version": "0.1.15.3",
+	"version": "0.2.1.1",
 	"vendor": "WebOS Internals",
 	"type": "web",
 	"main": "index.html",
